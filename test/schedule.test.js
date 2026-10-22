@@ -29,9 +29,9 @@ test('weekends and configured holidays use hourly cadence',()=>{
   assert.equal(holidayBusy.run,false);
 });
 
-test('missing or stale calendar falls back without stopping weekday collection',()=>{
+test('bundled official 2026 calendar works; a new year falls back without stopping collection',()=>{
   const missing=decideSchedule({now:new Date('2026-10-22T00:06:00Z'),cron:SCHEDULE_CRONS.thirtyMinute});
-  assert.equal(missing.run,true);assert.equal(missing.status,'UNVERIFIED_FALLBACK_WEEKDAY');
+  assert.equal(missing.run,true);assert.equal(missing.status,'VERIFIED_OFFICIAL_2026');
   const rollover=decideSchedule({now:new Date('2027-01-04T00:06:00Z'),cron:SCHEDULE_CRONS.thirtyMinute,...cal});
   assert.equal(rollover.run,true);assert.equal(rollover.status,'UNVERIFIED_FALLBACK_WEEKDAY');
 });

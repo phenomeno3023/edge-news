@@ -22,11 +22,13 @@ export function calendarFor(date, {year, holidays} = {}) {
   const isoDate = `${p.year}-${p.month}-${p.day}`;
   const weekend = p.weekday === 'Sat' || p.weekday === 'Sun';
   const list = String(holidays || '').split(',').map(x => x.trim()).filter(Boolean);
-  const currentYearConfigured = String(year || '') === p.year && list.length > 0 &&
+  const configuredForCurrentYear = String(year || '') === p.year && list.length > 0 &&
     list.every(x => new RegExp(`^${p.year}-\\d{2}-\\d{2}$`).test(x)) && new Set(list).size === list.length;
-  const official2026 = p.year === '2026' && currentYearConfigured && list.length === OFFICIAL_2026.size && list.every(x => OFFICIAL_2026.has(x));
-  const status = official2026 ? 'VERIFIED_OFFICIAL_2026' : currentYearConfigured ? 'CONFIGURED_UNVERIFIED' : 'UNVERIFIED_FALLBACK_WEEKDAY';
-  const holiday = currentYearConfigured && list.includes(isoDate);
+  const bundled2026 = p.year === '2026';
+  const holidayDates = bundled2026 ? [...OFFICIAL_2026] : configuredForCurrentYear ? list : [];
+  const official2026 = bundled2026 && holidayDates.length === OFFICIAL_2026.size && holidayDates.every(x => OFFICIAL_2026.has(x));
+  const status = official2026 ? 'VERIFIED_OFFICIAL_2026' : configuredForCurrentYear ? 'UNVERIFIED_CONFIGURED' : 'UNVERIFIED_FALLBACK_WEEKDAY';
+  const holiday = holidayDates.includes(isoDate);
   return {
     date: isoDate,
     weekday: !weekend && !holiday,
