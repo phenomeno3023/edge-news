@@ -1,0 +1,22 @@
+{
+  "name": "edge-news",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "collect": "node src/collect.js",
+    "export": "node src/export.js",
+    "report:step3": "node scripts/build-step3-report.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "express": "^4.21.2",
+    "iconv-lite": "^0.7.3",
+    "rss-parser": "^3.13.0"
+  }
+}

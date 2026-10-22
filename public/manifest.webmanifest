@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "EDGE NEWS",
+  "short_name": "EDGE NEWS",
+  "description": "개장 전 국내 증시 주요 뉴스와 공시",
+  "lang": "ko-KR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b111b",
+  "theme_color": "#101a2a",
+  "icons": [
+    {"src": "./icons/edge-news-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./icons/edge-news-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

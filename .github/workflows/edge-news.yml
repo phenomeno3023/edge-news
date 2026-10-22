@@ -1,0 +1,86 @@
+name: EDGE NEWS collection
+
+on:
+  schedule:
+    - cron: '0 23 * * 0-4'
+    - cron: '10 23 * * 0-4'
+    - cron: '20 23 * * 0-4'
+    - cron: '30 23 * * 0-4'
+    - cron: '40 23 * * 0-4'
+    - cron: '50 23 * * 0-4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: edge-news-collection
+  cancel-in-progress: false
+
+jobs:
+  collect-and-publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      DART_API_KEY: ${{ secrets.DART_API_KEY }}
+      KRX_HOLIDAYS: ${{ vars.KRX_HOLIDAYS }}
+      KRX_CALENDAR_YEAR: ${{ vars.KRX_CALENDAR_YEAR }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Restore compact collection state
+        if: steps.calendar.outputs.run == 'true'
+        run: |
+          if git fetch origin edge-news-state; then
+            mkdir -p data
+            git show origin/edge-news-state:state/edge-news.sqlite > data/edge-news.sqlite
+            git show origin/edge-news-state:state/krx_symbols.json > data/krx_symbols.json || true
+          fi
+      - name: Check KRX trading day
+        id: calendar
+        run: node src/should-run.js
+      - name: Mark final briefing run
+        if: steps.calendar.outputs.run == 'true' && github.event.schedule == '50 23 * * 0-4'
+        run: echo 'EDGE_FINAL_REPORT=true' >> "$GITHUB_ENV"
+      - name: Collect public feeds and disclosures
+        if: steps.calendar.outputs.run == 'true'
+        run: node src/collect.js
+      - name: Export mobile news snapshot
+        if: steps.calendar.outputs.run == 'true'
+        run: node src/export.js
+      - name: Prepare static snapshot and compact state branch
+        if: steps.calendar.outputs.run == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/edge-news-state"
+          cp -a public "$RUNNER_TEMP/edge-news-pages"
+          cp data/edge-news.sqlite "$RUNNER_TEMP/edge-news-state/edge-news.sqlite"
+          cp data/krx_symbols.json "$RUNNER_TEMP/edge-news-state/krx_symbols.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan edge-news-state
+          git rm -rf . || true
+          mkdir -p state
+          cp "$RUNNER_TEMP/edge-news-state/edge-news.sqlite" state/edge-news.sqlite
+          cp "$RUNNER_TEMP/edge-news-state/krx_symbols.json" state/krx_symbols.json
+          git add state/edge-news.sqlite state/krx_symbols.json
+          git commit -m 'Update compact EDGE NEWS state'
+          git push --force origin HEAD:edge-news-state
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.calendar.outputs.run == 'true'
+        with:
+          path: ${{ runner.temp }}/edge-news-pages
+      - name: Deploy mobile web snapshot
+        id: deployment
+        if: steps.calendar.outputs.run == 'true'
+        uses: actions/deploy-pages@v4
