@@ -49,17 +49,15 @@ function isRecentEnough(published){
 }
 const actualStartedAt=now(), triggerType=process.env.EDGE_ACTIONS_TRIGGER||'local';
 const workflowStartedAt=process.env.EDGE_ACTIONS_STARTED_AT||null;
-const schedule=process.env.EDGE_ACTIONS_SCHEDULE||'';
-let scheduledFor=null;
-const scheduleMatch=schedule.match(/^(\d+) 23 \* \* 0-4$/);
-if(triggerType==='schedule'&&scheduleMatch){
- const dateParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(workflowStartedAt||actualStartedAt));
- const get=t=>dateParts.find(x=>x.type===t)?.value;
- const minute=Number(scheduleMatch[1]);
- if(minute>=0&&minute<60) scheduledFor=new Date(`${get('year')}-${get('month')}-${get('day')}T08:${String(minute).padStart(2,'0')}:00+09:00`).toISOString();
+const scheduledFor=process.env.EDGE_ACTIONS_SCHEDULED_FOR||null;
+const calendarStatus=process.env.EDGE_KRX_CALENDAR_STATUS||'unverified';
+const scheduleMode=process.env.EDGE_SCHEDULE_MODE||'unknown';
+if(scheduledFor){
+ const completed=db.prepare("SELECT id FROM runs WHERE scheduled_for=? AND finished_at IS NOT NULL LIMIT 1").get(scheduledFor);
+ if(completed){if(process.env.GITHUB_ENV)fs.appendFileSync(process.env.GITHUB_ENV,'EDGE_COLLECTION_DUPLICATE=true\n');if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Duplicate scheduled slot skipped\n\n- Slot (estimated): ${scheduledFor}\n- Prior completed run: ${completed.id}\n`);console.log(JSON.stringify({skipped:true,reason:'scheduled slot already completed',scheduledFor,priorRunId:completed.id}));process.exit(0);}
 }
-const run=db.prepare(`INSERT INTO runs(started_at,status,trigger_type,scheduled_for,workflow_run_started_at,github_run_id,github_run_attempt,restore_status)
- VALUES(?,?,?,?,?,?,?,?)`).run(actualStartedAt,'running',triggerType,scheduledFor,workflowStartedAt,process.env.EDGE_ACTIONS_RUN_ID||null,Number(process.env.EDGE_ACTIONS_RUN_ATTEMPT)||null,process.env.EDGE_RESTORE_STATUS||'not_applicable').lastInsertRowid;
+const run=db.prepare(`INSERT INTO runs(started_at,status,trigger_type,scheduled_for,workflow_run_started_at,github_run_id,github_run_attempt,restore_status,calendar_status,schedule_mode)
+ VALUES(?,?,?,?,?,?,?,?,?,?)`).run(actualStartedAt,'running',triggerType,scheduledFor,workflowStartedAt,process.env.EDGE_ACTIONS_RUN_ID||null,Number(process.env.EDGE_ACTIONS_RUN_ATTEMPT)||null,process.env.EDGE_RESTORE_STATUS||'not_applicable',calendarStatus,scheduleMode).lastInsertRowid;
 let added=0,updated=0; const states={}; let errors=[];
 async function ingest(item,source){
  const title=String(item.title||'').trim(),url=item.link;

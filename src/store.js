@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS runs (
  updated INTEGER NOT NULL DEFAULT 0, error TEXT NOT NULL DEFAULT '',
  trigger_type TEXT NOT NULL DEFAULT 'local', scheduled_for TEXT,
  workflow_run_started_at TEXT, github_run_id TEXT, github_run_attempt INTEGER,
- restore_status TEXT NOT NULL DEFAULT 'not_applicable'
+ restore_status TEXT NOT NULL DEFAULT 'not_applicable',
+ calendar_status TEXT NOT NULL DEFAULT 'unverified', schedule_mode TEXT NOT NULL DEFAULT 'unknown'
 );
 CREATE TABLE IF NOT EXISTS reports (
  trade_date TEXT PRIMARY KEY, generated_at TEXT NOT NULL, text TEXT NOT NULL
@@ -36,6 +37,7 @@ const runColumns=db.prepare('PRAGMA table_info(runs)').all().map(x=>x.name);
 for(const [name,definition] of [
  ['trigger_type',"TEXT NOT NULL DEFAULT 'local'"],['scheduled_for','TEXT'],
  ['workflow_run_started_at','TEXT'],['github_run_id','TEXT'],['github_run_attempt','INTEGER'],
- ['restore_status',"TEXT NOT NULL DEFAULT 'not_applicable'"]
+ ['restore_status',"TEXT NOT NULL DEFAULT 'not_applicable'"],
+ ['calendar_status',"TEXT NOT NULL DEFAULT 'unverified'"],['schedule_mode',"TEXT NOT NULL DEFAULT 'unknown'"]
 ]) if(!runColumns.includes(name)) db.exec(`ALTER TABLE runs ADD COLUMN ${name} ${definition}`);
 db.exec('CREATE INDEX IF NOT EXISTS articles_title_key_idx ON articles(title_key)');

@@ -2,12 +2,14 @@ name: EDGE NEWS collection
 
 on:
   schedule:
-    - cron: '0 23 * * 0-4'
-    - cron: '10 23 * * 0-4'
-    - cron: '20 23 * * 0-4'
-    - cron: '30 23 * * 0-4'
-    - cron: '40 23 * * 0-4'
-    - cron: '50 23 * * 0-4'
+    # KST 08:00-08:50 on Mon-Fri (UTC 23:00-23:50 on Sun-Thu).
+    - cron: '0,10,20,30,40,50 23 * * 0-4'
+    # KST 09:00-19:30 on Mon-Fri (UTC 00:00-10:30 Mon-Fri).
+    - cron: '0,30 0-10 * * 1-5'
+    # KST 20:00 on Mon-Fri (UTC 11:00 Mon-Fri).
+    - cron: '0 11 * * 1-5'
+    # Hourly all week; the calendar gate keeps it for weekends/holidays only.
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -30,7 +32,6 @@ jobs:
       KRX_HOLIDAYS: ${{ vars.KRX_HOLIDAYS }}
       KRX_CALENDAR_YEAR: ${{ vars.KRX_CALENDAR_YEAR }}
       EDGE_ACTIONS_TRIGGER: ${{ github.event_name }}
-      EDGE_ACTIONS_STARTED_AT: ${{ github.run_started_at }}
       EDGE_ACTIONS_SCHEDULE: ${{ github.event.schedule || '' }}
       EDGE_ACTIONS_RUN_ID: ${{ github.run_id }}
       EDGE_ACTIONS_RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -45,6 +46,9 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Record actual workflow start
+        shell: bash
+        run: echo "EDGE_ACTIONS_STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
       - name: Check KRX trading day
         id: calendar
         run: node src/should-run.js
@@ -104,16 +108,16 @@ jobs:
             echo "Prior SQLite state was fetched and passed SQLite integrity_check before collection."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Mark final briefing run
-        if: steps.calendar.outputs.run == 'true' && github.event.schedule == '50 23 * * 0-4'
+        if: steps.calendar.outputs.run == 'true' && endsWith(steps.calendar.outputs.scheduled_for, 'T23:50:00.000Z')
         run: echo 'EDGE_FINAL_REPORT=true' >> "$GITHUB_ENV"
       - name: Collect public feeds and disclosures
         if: steps.calendar.outputs.run == 'true'
         run: node src/collect.js
       - name: Export mobile news snapshot
-        if: steps.calendar.outputs.run == 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         run: node src/export.js
       - name: Prepare static snapshot and compact state branch
-        if: steps.calendar.outputs.run == 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -137,12 +141,12 @@ jobs:
           fi
           echo "### State persistence: saved" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/configure-pages@v5
-        if: steps.calendar.outputs.run == 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
       - uses: actions/upload-pages-artifact@v3
-        if: steps.calendar.outputs.run == 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         with:
           path: ${{ runner.temp }}/edge-news-pages
       - name: Deploy mobile web snapshot
         id: deployment
-        if: steps.calendar.outputs.run == 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         uses: actions/deploy-pages@v4

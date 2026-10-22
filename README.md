@@ -2,6 +2,16 @@
 
 모바일 웹/PWA + Node API + SQLite 뉴스 적재기. 공개 KIND·한국경제·매일경제 RSS 연결은 확인했으며, 배포와 예약 실행은 GitHub 저장소 및 Pages 설정이 완료되기 전까지 운영 중으로 간주하지 않습니다.
 
+## 운영 예약
+
+GitHub Actions가 운영 예약을 담당하고, 실행 판정은 Asia/Seoul 시각을 사용합니다.
+
+- 거래일: 08:00–08:50 10분 간격, 09:00–20:00 30분 간격 (하루 29회)
+- 주말 및 현재 연도 KRX 휴장일: 매시 정각 (하루 24회)
+- KRX 달력 변수가 없거나 연도가 맞지 않으면 전체 수집을 중단하지 않습니다. 주말은 시간별, 평일은 거래일 주기로 실행하고 달력 상태를 `UNVERIFIED`로 기록합니다.
+
+GitHub Actions 예약은 지연되거나 누락될 수 있습니다. 저장된 예약 시각은 실제 스케줄 시각이 아니라 실행 시각에서 계산한 근사 슬롯입니다. 실제 워크플로 시작과 수집 시작·완료 시각은 별도 저장됩니다. 동시 실행은 직렬화하며 완료된 예약 슬롯의 중복 수집을 건너뜁니다.
+
 ## Local run
 
 - Node.js 22+
@@ -17,13 +27,13 @@
 - `KRX_SYMBOLS_CSV`: 필요할 때 사용할 `ticker,name` 종목 매핑 CSV override
 - `SCHEDULER_ENABLED=true`: 프로세스 내 시간표 활성화
 - `COLLECT_TIMES_KST`: 기본 `08:00,08:10,08:20,08:30,08:40,08:50`
-- `KRX_HOLIDAYS`: KRX 휴장일 `YYYY-MM-DD` 쉼표 목록. 빈 값이면 스케줄러는 안전을 위해 수집하지 않음
-- `KRX_CALENDAR_YEAR`: `KRX_HOLIDAYS`가 포괄하는 연도. 현재 KST 연도와 다르면 스케줄러는 수집하지 않음
+- `KRX_HOLIDAYS`: Actions 운영용 KRX 휴장일 `YYYY-MM-DD` 쉼표 목록
+- `KRX_CALENDAR_YEAR`: `KRX_HOLIDAYS`가 포괄하는 연도. 누락·연도 불일치 시 주말/평일 대체 주기를 사용하고 달력 상태를 UNVERIFIED로 기록
 - `ADMIN_TOKEN`: 수동 수집 요청 API의 Bearer 토큰
 
 종목 목록은 기본적으로 KIND의 공개 상장법인 목록에서 받아 24시간 캐시하며, 다운로드에 실패하면 캐시를 사용합니다. 기본 뉴스 수집원은 KIND 공개 공시 RSS, 한국경제 금융 RSS, 매일경제 증권 RSS입니다. `DART_API_KEY`가 설정된 경우 OpenDART 접수목록도 추가합니다. DART 키는 OpenDART에서 발급받아 `DART_API_KEY` 저장소 비밀 변수로 설정해야 합니다. KIND RSS에는 최근 공시만 보이는 제한이 있고, RSS의 기사 본문·시각 제공 범위도 매체별로 다릅니다. 실행기록에는 출처별 읽은 RSS 건수, 미설정 상태, 오류가 구분되어 저장됩니다.
 
-Node 서버의 스케줄러는 Asia/Seoul 시각을 사용하고 주말을 건너뜁니다. KRX 휴장일과 대상 연도를 설정하지 않으면 안전을 위해 수집하지 않습니다. `.github/workflows/edge-news.yml`에는 GitHub Actions와 Pages를 이용하는 저비용 대안이 준비되어 있지만, GitHub 예약 실행은 지연·누락될 수 있으므로 지정 분 시각을 보장하지 않습니다. 어느 방식도 실운영 자동 실행 검증 전에는 운영 중으로 간주하지 않습니다.
+Node 서버의 선택적 프로세스 스케줄러는 별도 서비스에서 `SCHEDULER_ENABLED=true`일 때만 동작합니다. 정적 Pages 배포의 운영 예약은 `.github/workflows/edge-news.yml`이 담당합니다. 실제 Actions 실행과 웹 배포를 확인하기 전에는 운영 중으로 간주하지 않습니다.
 
 ## Important limits
 

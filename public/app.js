@@ -3,7 +3,7 @@ const fmt=x=>!x?'시각 미확인':/^\d{4}-\d{2}-\d{2}$/.test(x)?`${x} (시각 �
 function escapeHtml(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function parseArray(x){try{return Array.isArray(x)?x:JSON.parse(x||'[]')}catch{return []}}
 async function load(){try{let d,staticMode=false,stale=false;try{const res=await fetch(new URL('./api/news',location.href));if(!res.ok)throw Error('API error');d=await res.json()}catch{const res=await fetch(new URL('./data/news.json',location.href));if(!res.ok)throw Error('News data unavailable');d=await res.json();staticMode=true;stale=res.headers.get('X-EDGE-STALE')==='true'}const allItems=Array.isArray(d.items)?d.items:[];d.items=allItems.filter(x=>(!$('#search').value||`${x.company||''} ${x.title} ${x.ticker||''}`.toLowerCase().includes($('#search').value.toLowerCase()))&&(!$('#grade').value||x.grade===$('#grade').value.replace('급',''))&&(!$('#category').value||x.category===$('#category').value));const run=d.latestRun;
- const dataAge=d.serverTime?Date.now()-new Date(d.serverTime).getTime():Infinity;stale=stale||staticMode&&(!Number.isFinite(dataAge)||dataAge>15*60*1000);$('#run-status').textContent=stale?'저장 뉴스 · 갱신 지연':run?({ok:'정상 실행',partial:'일부 출처 오류',unconfigured:'수집원 미설정',running:'실행 중'}[run.status]||run.status):'실행 기록 없음';const scheduleLag=run?.scheduled_for&&run?.started_at?Math.round((new Date(run.started_at)-new Date(run.scheduled_for))/1000):null;$('#updated').textContent=run?.finished_at?`최근 완료 ${fmt(run.finished_at)}${run.workflow_run_started_at?` · Actions 시작 ${fmt(run.workflow_run_started_at)}`:''}${scheduleLag!==null?` · 예약 대비 ${scheduleLag}초` :''}`:'수집 성공 여부 미확인';$('#day').textContent=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'medium'}).format(new Date());$('#total').textContent=`${d.items.length}건`;
+ const dataAge=d.serverTime?Date.now()-new Date(d.serverTime).getTime():Infinity;stale=stale||staticMode&&(!Number.isFinite(dataAge)||dataAge>15*60*1000);$('#run-status').textContent=stale?'저장 뉴스 · 갱신 지연':run?({ok:'정상 실행',partial:'일부 출처 오류',unconfigured:'수집원 미설정',running:'실행 중'}[run.status]||run.status):'실행 기록 없음';const scheduleLag=run?.scheduled_for&&run?.started_at?Math.round((new Date(run.started_at)-new Date(run.scheduled_for))/1000):null;$('#updated').textContent=run?.finished_at?`최근 완료 ${fmt(run.finished_at)}${run.workflow_run_started_at?` · Actions 시작 ${fmt(run.workflow_run_started_at)}`:''}${scheduleLag!==null?` · 추정 예약 대비 ${scheduleLag}초` :''}`:'수집 성공 여부 미확인';$('#day').textContent=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'medium'}).format(new Date());$('#total').textContent=`${d.items.length}건`;
  $('#count').textContent=run?`총 ${run.added}건 신규 · ${run.updated}건 중복·정정 재확인`:'실행 기록 없음';
  const sourceStates=run?.source_status?JSON.parse(run.source_status):{};
  const sourceSummary=Object.entries(sourceStates).map(([s,v])=>`${s}: ${v}`).join(' · ')||'뉴스 출처 연결이 설정되지 않았습니다.';
@@ -16,9 +16,10 @@ async function load(){try{let d,staticMode=false,stale=false;try{const res=await
   d.report?'최종 보고서 상태: 당일 종합 보고서가 생성됐습니다.':'상태: 중간 결과입니다. 08:50 최종 종합보고서는 해당 시각 수집이 끝난 뒤 생성됩니다.',
   `실행 시작: ${run?.started_at?fmt(run.started_at):'확인 불가'}`,
   `실행 완료: ${run?.finished_at?fmt(run.finished_at):'확인 불가'}`,
-  `실행 유형: ${run?.trigger_type||'확인 불가'} · 예약 시각(KST): ${run?.scheduled_for?fmt(run.scheduled_for):'예약 실행 아님/미기록'}`,
+  `실행 유형: ${run?.trigger_type||'확인 불가'} · 예약 시각 추정(KST): ${run?.scheduled_for?fmt(run.scheduled_for):'예약 실행 아님/미기록'}`,
+  `실행 주기: ${run?.schedule_mode||'확인 불가'} · KRX 휴장일 달력: ${run?.calendar_status||'UNVERIFIED'}`,
   `GitHub Actions 실제 시작: ${run?.workflow_run_started_at?fmt(run.workflow_run_started_at):'Actions 실행 아님/미기록'} · 실행 ID: ${run?.github_run_id||'없음'}`,
-  `예약 대비 수집 시작 지연: ${run?.scheduled_for&&run?.started_at?`${Math.round((new Date(run.started_at)-new Date(run.scheduled_for))/1000)}초`:'예약 실행 아님/미기록'}`,
+  `추정 예약 대비 수집 시작 지연: ${run?.scheduled_for&&run?.started_at?`${Math.round((new Date(run.started_at)-new Date(run.scheduled_for))/1000)}초`:'예약 실행 아님/미기록'}`,
   `기존 상태 복원: ${run?.restore_status||'기록 없음'}`,
   `이번 실행: 신규 ${run?.added??'확인 불가'}건 · 재확인/갱신 ${run?.updated??'확인 불가'}건`,
   `출처별 상태: ${sourceSummary}`,
