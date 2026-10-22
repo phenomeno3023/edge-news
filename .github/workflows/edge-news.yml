@@ -29,6 +29,11 @@ jobs:
       DART_API_KEY: ${{ secrets.DART_API_KEY }}
       KRX_HOLIDAYS: ${{ vars.KRX_HOLIDAYS }}
       KRX_CALENDAR_YEAR: ${{ vars.KRX_CALENDAR_YEAR }}
+      EDGE_ACTIONS_TRIGGER: ${{ github.event_name }}
+      EDGE_ACTIONS_STARTED_AT: ${{ github.run_started_at }}
+      EDGE_ACTIONS_SCHEDULE: ${{ github.event.schedule || '' }}
+      EDGE_ACTIONS_RUN_ID: ${{ github.run_id }}
+      EDGE_ACTIONS_RUN_ATTEMPT: ${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,18 +43,66 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - name: Restore compact collection state
-        if: steps.calendar.outputs.run == 'true'
-        run: |
-          if git fetch origin edge-news-state; then
-            mkdir -p data
-            git show origin/edge-news-state:state/edge-news.sqlite > data/edge-news.sqlite
-            git show origin/edge-news-state:state/krx_symbols.json > data/krx_symbols.json || true
-          fi
+      - name: Install dependencies
+        run: npm ci
       - name: Check KRX trading day
         id: calendar
         run: node src/should-run.js
+      - name: Restore compact collection state
+        id: restore
+        if: steps.calendar.outputs.run == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          git ls-remote --exit-code --heads origin refs/heads/edge-news-state >/dev/null 2>&1
+          branch_check=$?
+          set -e
+          if [ "$branch_check" -eq 2 ]; then
+            echo "No prior edge-news-state branch; importing the committed public news snapshot."
+            node scripts/import-snapshot.js
+            echo "EDGE_RESTORE_STATUS=first_run_snapshot_seeded" >> "$GITHUB_ENV"
+            echo "status=first_run_snapshot_seeded" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Collection state: first run"
+              echo "No state branch existed. Seeded the database from the existing public/data/news.json snapshot before collection."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$branch_check" -ne 0 ]; then
+            echo "::error::Could not verify edge-news-state branch existence (git ls-remote exit $branch_check). Collection stopped; existing stored state was not overwritten."
+            echo "EDGE_RESTORE_STATUS=failed" >> "$GITHUB_ENV"
+            exit 1
+          fi
+          if ! git fetch --no-tags origin edge-news-state; then
+            echo "::error::State branch exists but could not be fetched. Collection stopped; no fresh database was created and the remote state branch was not changed."
+            echo "EDGE_RESTORE_STATUS=failed" >> "$GITHUB_ENV"
+            exit 1
+          fi
+          mkdir -p data
+          if ! git show FETCH_HEAD:state/edge-news.sqlite > "$RUNNER_TEMP/edge-news.sqlite"; then
+            echo "::error::State branch exists but its SQLite database is missing or unreadable. Collection stopped; remote state was not changed."
+            echo "EDGE_RESTORE_STATUS=failed" >> "$GITHUB_ENV"
+            exit 1
+          fi
+          if ! test -s "$RUNNER_TEMP/edge-news.sqlite" || ! node --input-type=module -e "import {DatabaseSync} from 'node:sqlite'; const db=new DatabaseSync(process.argv[1]); const row=db.prepare('PRAGMA integrity_check').get(); db.close(); if(Object.values(row)[0]!=='ok') process.exit(1);" "$RUNNER_TEMP/edge-news.sqlite"; then
+            echo "::error::Restored SQLite state failed integrity validation. Collection stopped; remote state was not changed."
+            echo "EDGE_RESTORE_STATUS=failed" >> "$GITHUB_ENV"
+            exit 1
+          fi
+          mv "$RUNNER_TEMP/edge-news.sqlite" data/edge-news.sqlite
+          if git show FETCH_HEAD:state/krx_symbols.json > "$RUNNER_TEMP/krx_symbols.json"; then
+            mv "$RUNNER_TEMP/krx_symbols.json" data/krx_symbols.json
+          else
+            echo "::warning::Prior symbol cache is missing; the collector will refresh the public KRX listing."
+          fi
+          echo "EDGE_RESTORE_STATUS=restored" >> "$GITHUB_ENV"
+          echo "status=restored" >> "$GITHUB_OUTPUT"
+          echo "Restored and integrity-checked the prior SQLite collection database."
+          {
+            echo "### Collection state: restored"
+            echo "Prior SQLite state was fetched and passed SQLite integrity_check before collection."
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Mark final briefing run
         if: steps.calendar.outputs.run == 'true' && github.event.schedule == '50 23 * * 0-4'
         run: echo 'EDGE_FINAL_REPORT=true' >> "$GITHUB_ENV"
@@ -61,21 +114,30 @@ jobs:
         run: node src/export.js
       - name: Prepare static snapshot and compact state branch
         if: steps.calendar.outputs.run == 'true'
+        shell: bash
         run: |
-          mkdir -p "$RUNNER_TEMP/edge-news-state"
-          cp -a public "$RUNNER_TEMP/edge-news-pages"
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/edge-news-pages" "$RUNNER_TEMP/edge-news-state"
+          cp -a public/. "$RUNNER_TEMP/edge-news-pages/"
           cp data/edge-news.sqlite "$RUNNER_TEMP/edge-news-state/edge-news.sqlite"
-          cp data/krx_symbols.json "$RUNNER_TEMP/edge-news-state/krx_symbols.json"
+          if [ -f data/krx_symbols.json ]; then cp data/krx_symbols.json "$RUNNER_TEMP/edge-news-state/krx_symbols.json"; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout --orphan edge-news-state
           git rm -rf . || true
           mkdir -p state
           cp "$RUNNER_TEMP/edge-news-state/edge-news.sqlite" state/edge-news.sqlite
-          cp "$RUNNER_TEMP/edge-news-state/krx_symbols.json" state/krx_symbols.json
-          git add state/edge-news.sqlite state/krx_symbols.json
+          if [ -f "$RUNNER_TEMP/edge-news-state/krx_symbols.json" ]; then cp "$RUNNER_TEMP/edge-news-state/krx_symbols.json" state/krx_symbols.json; fi
+          git add state
           git commit -m 'Update compact EDGE NEWS state'
-          git push --force origin HEAD:edge-news-state
+          if ! git push --force origin HEAD:edge-news-state; then
+            echo "::error::News collection completed but state persistence failed. The prior remote state remains intact; Pages publication was stopped to avoid publishing an unpersisted run."
+            echo "### State persistence: failed" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "### State persistence: saved" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/configure-pages@v5
+        if: steps.calendar.outputs.run == 'true'
       - uses: actions/upload-pages-artifact@v3
         if: steps.calendar.outputs.run == 'true'
         with:

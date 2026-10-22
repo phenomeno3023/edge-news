@@ -47,7 +47,19 @@ function isRecentEnough(published){
  if(day===today)return true;const prev=new Date(Date.now()-24*60*60*1000),y=fields(prev),yesterday=`${y.year}-${y.month}-${y.day}`;
  return day===yesterday&&(Number(then.hour)>15||(Number(then.hour)===15&&Number(then.minute)>=30));
 }
-const run=db.prepare('INSERT INTO runs(started_at,status) VALUES(?,?)').run(now(),'running').lastInsertRowid;
+const actualStartedAt=now(), triggerType=process.env.EDGE_ACTIONS_TRIGGER||'local';
+const workflowStartedAt=process.env.EDGE_ACTIONS_STARTED_AT||null;
+const schedule=process.env.EDGE_ACTIONS_SCHEDULE||'';
+let scheduledFor=null;
+const scheduleMatch=schedule.match(/^(\d+) 23 \* \* 0-4$/);
+if(triggerType==='schedule'&&scheduleMatch){
+ const dateParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(workflowStartedAt||actualStartedAt));
+ const get=t=>dateParts.find(x=>x.type===t)?.value;
+ const minute=Number(scheduleMatch[1]);
+ if(minute>=0&&minute<60) scheduledFor=new Date(`${get('year')}-${get('month')}-${get('day')}T08:${String(minute).padStart(2,'0')}:00+09:00`).toISOString();
+}
+const run=db.prepare(`INSERT INTO runs(started_at,status,trigger_type,scheduled_for,workflow_run_started_at,github_run_id,github_run_attempt,restore_status)
+ VALUES(?,?,?,?,?,?,?,?)`).run(actualStartedAt,'running',triggerType,scheduledFor,workflowStartedAt,process.env.EDGE_ACTIONS_RUN_ID||null,Number(process.env.EDGE_ACTIONS_RUN_ATTEMPT)||null,process.env.EDGE_RESTORE_STATUS||'not_applicable').lastInsertRowid;
 let added=0,updated=0; const states={}; let errors=[];
 async function ingest(item,source){
  const title=String(item.title||'').trim(),url=item.link;

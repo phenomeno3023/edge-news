@@ -7,4 +7,6 @@ test('SQLite schema stores articles, collection runs, and final reports independ
  assert.ok(names.includes('articles'));assert.ok(names.includes('runs'));assert.ok(names.includes('reports'));
  const cols=db.prepare('PRAGMA table_info(articles)').all().map(x=>x.name);
  for(const field of ['title_key','source_links','first_seen_at','published_at','grade','risks'])assert.ok(cols.includes(field));
+ const runCols=db.prepare('PRAGMA table_info(runs)').all().map(x=>x.name);
+ for(const field of ['trigger_type','scheduled_for','workflow_run_started_at','github_run_id','github_run_attempt','restore_status'])assert.ok(runCols.includes(field));
 });
