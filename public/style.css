@@ -2,3 +2,5 @@
 .report-box .report-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.report-title button{font-size:11px;padding:6px 10px;white-space:nowrap}.report-title button:disabled{opacity:.45;cursor:not-allowed}.report-box #copy-status{display:block;min-height:16px;margin-top:5px;color:var(--green);font-size:11px}
 .header-actions{display:flex;gap:8px;align-items:center}.header-actions button{font-size:12px;padding:8px 11px}#install{background:#193653;border-color:#35638c;color:#d9edff}.notice.stale{background:#35231f;border-color:#7c4934;color:#ffe0c2}.notice.stale span{color:#d4b49b}@media(max-width:420px){.brand small{display:none}.header-actions button{padding:7px 8px;font-size:11px}}
 .report-link{font-size:11px;color:#81bfff;text-decoration:none;white-space:nowrap}
+
+#install-help[hidden]{display:none}#install-help{display:block;margin:10px 0;padding:13px 15px;background:#172b35;border:1px solid #35715f;border-radius:10px;color:#dff8ed;font-size:13px}#install-help p{margin:6px 0 10px;color:#bfd8ce}#install-help button{font-size:12px;padding:6px 10px}
