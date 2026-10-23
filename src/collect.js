@@ -28,7 +28,7 @@ const symbolStatus=await loadSymbols();
 for(const row of db.prepare("SELECT id,title,source,summary,status FROM articles").all()){
  const isKind=row.source.includes('kind.krx.co.kr')||row.source.includes('오늘의공시');
  // Repair earlier imports too: RSS author fields on media feeds are journalists, not issuers.
- const symbol=matchSymbol(row.title),analysis=analyze({title:row.title,content:isKind?'':row.summary});
+ const symbol=matchSymbol(row.title,'',symbols),analysis=analyze({title:row.title,content:isKind?'':row.summary});
  const corrected=/\[정정\]|\(정정\)/.test(row.title)?'corrected':row.status;
  db.prepare('UPDATE articles SET ticker=?,company=?,category=?,grade=?,risks=?,is_disclosure=?,status=? WHERE id=?').run(symbol.ticker||null,symbol.company||null,analysis.category,analysis.grade,analysis.risks,(isKind||row.source==='DART')?1:0,corrected,row.id);
 }
@@ -54,7 +54,7 @@ async function ingest(item,source){
  if(pub&&!/^\d{4}-\d{2}-\d{2}$/.test(pub)&&!isRecentEnough(pub))return;
  const seen=now();
  const isKind=source.startsWith('kind.krx.co.kr');
- const symbol=matchSymbol(title,isKind?(item.author||''):source==='DART'?(item.content||''):'');
+ const symbol=matchSymbol(title,isKind?(item.author||''):source==='DART'?(item.content||''):'',symbols);
  const detail=isKind?'':item.contentSnippet||item.content||'';
  const analysis=analyze({title,content:detail});
  if(analysis.category==='기타')return;
