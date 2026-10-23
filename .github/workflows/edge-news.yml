@@ -8,8 +8,10 @@ on:
       - public/sw.js
       - src/export.js
       - src/schedule.js
+      - src/news-window.js
       - test/pwa.test.js
       - test/schedule.test.js
+      - test/news-window.test.js
       - .github/workflows/edge-news.yml
   schedule:
     # KST 08:00-08:50 every day (UTC 23:00-23:50 every day).
