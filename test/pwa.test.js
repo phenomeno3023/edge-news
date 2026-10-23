@@ -19,4 +19,9 @@ test('PWA shell and mobile dashboard selectors are valid',()=>{
  assert.ok(app.includes('const setText=')&&app.includes('if(!element)'), 'text writes must ignore absent optional targets');
  assert.ok(app.includes('screen rendering failed'),'screen rendering errors must be distinguished from data errors');
  assert.ok(app.includes('if(feed)feed.innerHTML'),'news rendering must tolerate a missing feed container');
+ assert.ok(app.includes("SamsungBrowser"),'Samsung Internet must use the safe shortcut path');
+ assert.ok(app.includes("if(isSamsungInternet||!installPrompt)"),'unsupported/Samsung browsers must show shortcut instructions');
+ assert.ok(app.includes("promptEvent.prompt()"),'native installation is only invoked from the browser-provided PWA prompt');
+ assert.ok(html.includes('id="install-help"')&&html.includes('id="install-help-close"'),'fallback shortcut guidance controls must exist');
+ assert.doesNotMatch(app,/(?:\.apk|market:\/\/|intent:\/\/)/i,'the app must not link to APK or external Android installation routes');
 });
