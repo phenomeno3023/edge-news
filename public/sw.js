@@ -1,4 +1,4 @@
-const VERSION='edge-news-v1.0.2';
+const VERSION='edge-news-v1.0.3';
 const SHELL=['./','./index.html','./style.css','./app.js','./manifest.webmanifest','./icons/edge-news.svg','./icons/edge-news-192.png','./icons/edge-news-512.png','./data/news.json','./data/status.json'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('edge-news-')&&key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
