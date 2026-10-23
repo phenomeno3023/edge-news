@@ -6,6 +6,7 @@ import {load as loadHtml} from 'cheerio';
 import iconv from 'iconv-lite';
 import {db} from './store.js';
 import {analyze,stableId,normalizeTitle} from './analyze.js';
+import {matchSymbol} from './symbol-match.js';
 import {getNewsCoverageWindow,isWithinNewsCoverage} from './news-window.js';
 const parser = new Parser({timeout:12000, headers:{'User-Agent':'EDGE-NEWS/1.0 (public RSS reader)'}});
 const now=()=>new Date().toISOString();
@@ -24,16 +25,6 @@ async function loadSymbols(){
  }catch(e){try{const saved=JSON.parse(fs.readFileSync(cache,'utf8'));for(const x of saved.items)symbols.set(x.name,{ticker:x.ticker,company:x.name});return `stale-cache:${symbols.size}; ${e.message}`;}catch{return `error:${e.message}`}}
 }
 const symbolStatus=await loadSymbols();
-const symbolNames=[...symbols.entries()].sort((a,b)=>b[0].length-a[0].length);
-const aliases=new Map([['LS일렉트릭',{ticker:'010120',company:'LS ELECTRIC'}],['LS ELECTRIC',{ticker:'010120',company:'LS ELECTRIC'}],['삼성바이오',{ticker:'207940',company:'삼성바이오로직스'}]]);
-function matchSymbol(title,author=''){
- const text=`${title} ${author}`;
- for(const [alias,entry] of aliases)if(text.toLocaleLowerCase('ko-KR').includes(alias.toLocaleLowerCase('ko-KR')))return entry;
- return symbolNames.find(([name])=>{
-  if(/^[A-Za-z0-9 .&-]+$/.test(name))return new RegExp(`(^|[^A-Za-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}($|[^A-Za-z0-9])`,'i').test(text);
-  return title.includes(name)||author.includes(name);
- })?.[1]||{};
-}
 for(const row of db.prepare("SELECT id,title,source,summary,status FROM articles").all()){
  const isKind=row.source.includes('kind.krx.co.kr')||row.source.includes('오늘의공시');
  // Repair earlier imports too: RSS author fields on media feeds are journalists, not issuers.
