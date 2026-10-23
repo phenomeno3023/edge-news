@@ -21,7 +21,7 @@ test('PWA shell and mobile dashboard selectors are valid',()=>{
  assert.ok(app.includes('if(feed)feed.innerHTML'),'news rendering must tolerate a missing feed container');
  assert.ok(app.includes("SamsungBrowser"),'Samsung Internet must use the safe shortcut path');
  assert.ok(app.includes("window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();})"),'native install prompt must be suppressed');
- assert.doesNotMatch(app,/\\.prompt\\s*\\(/,'no browser installation prompt may be invoked');
+ assert.equal(app.includes('.prompt('),false,'no browser installation prompt may be invoked');
  assert.ok(html.includes('홈 화면 바로가기'),'install control must be a shortcut-only action');
  assert.ok(html.includes('app.js?v=edge-news-safe-install-20261023'),'HTML must request a cache-busted app script');
  assert.ok(worker.includes("./app.js?v=edge-news-safe-install-20261023"),'service worker shell must precache the versioned app script');
