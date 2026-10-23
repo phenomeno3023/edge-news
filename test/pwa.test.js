@@ -8,7 +8,7 @@ test('PWA shell and mobile dashboard selectors are valid',()=>{
  for(const icon of manifest.icons){const file=new URL(`../public/${icon.src.replace('./','')}`,import.meta.url);assert.ok(fs.existsSync(file));}
  const worker=fs.readFileSync(new URL('../public/sw.js',import.meta.url),'utf8');
  assert.ok(worker.includes('X-EDGE-STALE'));assert.ok(worker.includes('skipWaiting'));
- assert.ok(worker.includes('data/news.json'));assert.ok(worker.includes('data/status.json'));assert.ok(worker.includes('edge-news-v1.0.3'));
+ assert.ok(worker.includes('data/news.json'));assert.ok(worker.includes('data/status.json'));assert.ok(worker.includes('edge-news-v1.0.4'));
  const app=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  assert.ok(app.includes('parseObject'));assert.ok(app.includes('data/status.json'));
  const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
@@ -20,8 +20,12 @@ test('PWA shell and mobile dashboard selectors are valid',()=>{
  assert.ok(app.includes('screen rendering failed'),'screen rendering errors must be distinguished from data errors');
  assert.ok(app.includes('if(feed)feed.innerHTML'),'news rendering must tolerate a missing feed container');
  assert.ok(app.includes("SamsungBrowser"),'Samsung Internet must use the safe shortcut path');
- assert.ok(app.includes("if(isSamsungInternet||!installPrompt)"),'unsupported/Samsung browsers must show shortcut instructions');
- assert.ok(app.includes("promptEvent.prompt()"),'native installation is only invoked from the browser-provided PWA prompt');
+ assert.ok(app.includes("window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();})"),'native install prompt must be suppressed');
+ assert.doesNotMatch(app,/\\.prompt\\s*\\(/,'no browser installation prompt may be invoked');
+ assert.ok(html.includes('홈 화면 바로가기'),'install control must be a shortcut-only action');
+ assert.ok(html.includes('app.js?v=edge-news-safe-install-20261023'),'HTML must request a cache-busted app script');
+ assert.ok(worker.includes("./app.js?v=edge-news-safe-install-20261023"),'service worker shell must precache the versioned app script');
+ assert.ok(app.includes("sw.js?v=edge-news-safe-install-20261023")&&app.includes("updateViaCache:'none'"),'service worker registration must request an uncached update');
  assert.ok(html.includes('id="install-help"')&&html.includes('id="install-help-close"'),'fallback shortcut guidance controls must exist');
  assert.doesNotMatch(app,/(?:\.apk|market:\/\/|intent:\/\/)/i,'the app must not link to APK or external Android installation routes');
 });
