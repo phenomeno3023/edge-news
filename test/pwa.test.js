@@ -5,7 +5,7 @@ import fs from 'node:fs';
 test('PWA shell and mobile dashboard selectors are valid',()=>{
  const manifest=JSON.parse(fs.readFileSync(new URL('../public/manifest.webmanifest',import.meta.url),'utf8'));
  assert.equal(manifest.name,'EDGE NEWS');assert.equal(manifest.display,'standalone');
- for(const icon of manifest.icons){const file=new URL(`../public/${icon.src.replace(/^\\.\\//,'')}`,import.meta.url);assert.ok(fs.existsSync(file));}
+ for(const icon of manifest.icons){const file=new URL(`../public/${icon.src.replace('./','')}`,import.meta.url);assert.ok(fs.existsSync(file));}
  const worker=fs.readFileSync(new URL('../public/sw.js',import.meta.url),'utf8');
  assert.ok(worker.includes('X-EDGE-STALE'));assert.ok(worker.includes('skipWaiting'));
  assert.ok(worker.includes('data/news.json'));assert.ok(worker.includes('data/status.json'));assert.ok(worker.includes('edge-news-v1.0.3'));
