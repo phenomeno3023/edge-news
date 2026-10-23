@@ -39,4 +39,6 @@ test('bundled official 2026 calendar works; a new year falls back without stoppi
 test('manual dispatch is allowed without calendar configuration',()=>{
   const manual=decideSchedule({now:new Date('2026-10-24T01:00:00Z'),event:'workflow_dispatch'});
   assert.equal(manual.run,true);assert.equal(manual.scheduledFor,null);
+  const push=decideSchedule({now:new Date('2026-10-23T03:16:00Z'),event:'push'});
+  assert.equal(push.run,true);assert.equal(push.scheduledFor,null);assert.equal(push.reason,'code update deployment');
 });

@@ -49,7 +49,7 @@ function approximateScheduledAt(now, intervalMinutes) {
 
 export function decideSchedule({now = new Date(), cron = '', event = 'schedule', year, holidays} = {}) {
   const calendar = calendarFor(now, {year, holidays});
-  if (event === 'workflow_dispatch') return {run: true, ...calendar, reason: 'manual dispatch', scheduledFor: null};
+  if (event === 'workflow_dispatch' || event === 'push') return {run: true, ...calendar, reason: event === 'push' ? 'code update deployment' : 'manual dispatch', scheduledFor: null};
   if (event !== 'schedule') return {run: false, ...calendar, reason: 'unsupported event', scheduledFor: null};
 
   const p = calendar.parts;

@@ -7,5 +7,6 @@ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric
 const get=t=>parts.find(x=>x.type===t).value,today=`${get('year')}-${get('month')}-${get('day')}`;
 const items=db.prepare(`SELECT * FROM articles WHERE status IN ('active','corrected') AND (date(published_at,'+9 hours')=? OR (date(published_at,'+9 hours')=date(?,'-1 day') AND time(published_at,'+9 hours')>='15:30:00')) ORDER BY CASE grade WHEN 'S' THEN 0 WHEN 'A' THEN 1 WHEN 'B' THEN 2 ELSE 3 END,published_at DESC,first_seen_at DESC LIMIT 300`).all(today,today).map(r=>({...r,amounts:JSON.parse(r.amounts),facts:JSON.parse(r.facts)}));
 const payload={items,latestRun:db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 1').get()||null,report:db.prepare('SELECT * FROM reports ORDER BY trade_date DESC LIMIT 1').get()||null,serverTime:new Date().toISOString()};
-const target=path.resolve(root,'../public/data/news.json');fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,JSON.stringify(payload));
-console.log(JSON.stringify({date:today,items:items.length,output:'public/data/news.json'}));
+const target=path.resolve(root,'../public/data/news.json');const statusTarget=path.resolve(root,'../public/data/status.json');fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,JSON.stringify(payload));
+const statusPayload={version:1,latestRun:payload.latestRun,serverTime:payload.serverTime};fs.writeFileSync(statusTarget,JSON.stringify(statusPayload));
+console.log(JSON.stringify({date:today,items:items.length,output:'public/data/news.json',statusOutput:'public/data/status.json'}));

@@ -8,5 +8,5 @@ test('PWA manifest and offline shell assets are present and valid',()=>{
  for(const icon of manifest.icons){const file=new URL(`../public/${icon.src.replace(/^\.\//,'')}`,import.meta.url);assert.ok(fs.existsSync(file));}
  const worker=fs.readFileSync(new URL('../public/sw.js',import.meta.url),'utf8');
  assert.match(worker,/X-EDGE-STALE/);assert.match(worker,/skipWaiting/);
- assert.match(worker,/data\/news\.json/);
+ assert.match(worker,/data\/news\.json/);assert.match(worker,/data\/status\.json/);assert.match(worker,/v1\.0\.2/);const app=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');assert.match(app,/parseObject/);assert.match(app,/data\/status\.json/);
 });

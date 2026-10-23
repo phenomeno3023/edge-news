@@ -1,6 +1,16 @@
 name: EDGE NEWS collection
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - public/app.js
+      - public/sw.js
+      - src/export.js
+      - src/schedule.js
+      - test/pwa.test.js
+      - test/schedule.test.js
+      - .github/workflows/edge-news.yml
   schedule:
     # KST 08:00-08:50 on Mon-Fri (UTC 23:00-23:50 on Sun-Thu).
     - cron: '0,10,20,30,40,50 23 * * 0-4'
