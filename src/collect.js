@@ -6,6 +6,7 @@ import {load as loadHtml} from 'cheerio';
 import iconv from 'iconv-lite';
 import {db} from './store.js';
 import {analyze,stableId,normalizeTitle} from './analyze.js';
+import {getNewsCoverageWindow,isWithinNewsCoverage} from './news-window.js';
 const parser = new Parser({timeout:12000, headers:{'User-Agent':'EDGE-NEWS/1.0 (public RSS reader)'}});
 const now=()=>new Date().toISOString();
 const kst=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
@@ -40,13 +41,7 @@ for(const row of db.prepare("SELECT id,title,source,summary,status FROM articles
  const corrected=/\[정정\]|\(정정\)/.test(row.title)?'corrected':row.status;
  db.prepare('UPDATE articles SET ticker=?,company=?,category=?,grade=?,risks=?,is_disclosure=?,status=? WHERE id=?').run(symbol.ticker||null,symbol.company||null,analysis.category,analysis.grade,analysis.risks,(isKind||row.source==='DART')?1:0,corrected,row.id);
 }
-function isRecentEnough(published){
- if(!published)return false;const ts=new Date(published);if(!Number.isFinite(ts.getTime()))return false;
- const fields=d=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d).map(x=>[x.type,x.value]));
- const now=fields(new Date()),then=fields(ts),today=`${now.year}-${now.month}-${now.day}`,day=`${then.year}-${then.month}-${then.day}`;
- if(day===today)return true;const prev=new Date(Date.now()-24*60*60*1000),y=fields(prev),yesterday=`${y.year}-${y.month}-${y.day}`;
- return day===yesterday&&(Number(then.hour)>15||(Number(then.hour)===15&&Number(then.minute)>=30));
-}
+const isRecentEnough=(published,now=new Date())=>isWithinNewsCoverage(published,now);
 const actualStartedAt=now(), triggerType=process.env.EDGE_ACTIONS_TRIGGER||'local';
 const workflowStartedAt=process.env.EDGE_ACTIONS_STARTED_AT||null;
 const scheduledFor=process.env.EDGE_ACTIONS_SCHEDULED_FOR||null;
@@ -102,14 +97,15 @@ for(const url of sources){
  catch(e){states[h]=`error: ${e.message}`;errors.push(`${h}: ${e.message}`)}
 }
 const finished=now();
-const runStatus=Object.values(states).some(x=>String(x).startsWith('error')||x==='unconfigured')?(Object.values(states).every(x=>x==='unconfigured')?'unconfigured':'partial'):'ok';
+const runStatus=Object.values(states).some(x=>String(x).startsWith('error'))?'partial':'ok';
 db.prepare('UPDATE runs SET finished_at=?,status=?,source_status=?,added=?,updated=?,error=? WHERE id=?').run(finished,runStatus,JSON.stringify(states),added,updated,errors.join('; ').slice(0,1000),run);
 const parts=kst(),get=t=>parts.find(x=>x.type===t)?.value,hm=`${get('hour')}:${get('minute')}`,tradeDate=`${get('year')}-${get('month')}-${get('day')}`;
 if(hm==='08:50'||process.env.EDGE_FINAL_REPORT==='true'){
- const items=db.prepare("SELECT title,source,grade,category,summary FROM articles WHERE status IN ('active','corrected') AND date(first_seen_at,'+9 hours')=? ORDER BY CASE grade WHEN 'A' THEN 0 WHEN 'B' THEN 1 ELSE 2 END,first_seen_at DESC").all(tradeDate);
- const textReport=items.length?items.map((x,i)=>`${i+1}. [${x.grade}급·${x.category}] ${x.title} (${x.source})\n${x.summary}`).join('\n\n'):'신규 기사가 없습니다.';
- const coverage=`수집기록: ${JSON.stringify(states)}. 오류: ${errors.join('; ')||'없음'}. 실제 수집 출처 외 시장 전체가 확인된 것으로 간주하지 않습니다.`;
- db.prepare('INSERT INTO reports(trade_date,generated_at,text) VALUES(?,?,?) ON CONFLICT(trade_date) DO UPDATE SET generated_at=excluded.generated_at,text=excluded.text').run(tradeDate,finished,`${textReport}\n\n${coverage}`);
+ const coverageWindow=getNewsCoverageWindow(new Date());
+ const items=db.prepare("SELECT title,source,grade,category,summary,published_at FROM articles WHERE status IN ('active','corrected') ORDER BY CASE grade WHEN 'S' THEN 0 WHEN 'A' THEN 1 WHEN 'B' THEN 2 ELSE 3 END,published_at DESC").all().filter(x=>isWithinNewsCoverage(x.published_at,new Date()));
+ const textReport=items.length?items.map((x,i)=>`${i+1}. [${x.grade}급·${x.category}] ${x.title} (${x.source})\\n게시: ${x.published_at||'시각 미확인'}\\n${x.summary}`).join('\\n\\n'):'신규 기사가 없습니다.';
+ const coverage=`표시 범위: ${coverageWindow.fromKst} 이후 게시된 기사. 수집기록: ${JSON.stringify(states)}. 오류: ${errors.join('; ')||'없음'}. 실제 수집 출처 외 시장 전체가 확인된 것으로 간주하지 않습니다.`;
+ db.prepare('INSERT INTO reports(trade_date,generated_at,text) VALUES(?,?,?) ON CONFLICT(trade_date) DO UPDATE SET generated_at=excluded.generated_at,text=excluded.text').run(tradeDate,finished,`${textReport}\\n\\n${coverage}`);
 }
 console.log(JSON.stringify({run,finished,status:runStatus,sources:states,added,updated,errors}));
 db.exec("DELETE FROM articles WHERE first_seen_at < datetime('now','-120 days'); DELETE FROM runs WHERE started_at < datetime('now','-180 days'); DELETE FROM reports WHERE trade_date < date('now','-180 days'); PRAGMA wal_checkpoint(TRUNCATE)");

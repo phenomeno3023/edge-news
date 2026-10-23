@@ -12,13 +12,13 @@ on:
       - test/schedule.test.js
       - .github/workflows/edge-news.yml
   schedule:
-    # KST 08:00-08:50 on Mon-Fri (UTC 23:00-23:50 on Sun-Thu).
-    - cron: '0,10,20,30,40,50 23 * * 0-4'
+    # KST 08:00-08:50 every day (UTC 23:00-23:50 every day).
+    - cron: '0,10,20,30,40,50 23 * * *'
     # KST 09:00-19:30 on Mon-Fri (UTC 00:00-10:30 Mon-Fri).
     - cron: '0,30 0-10 * * 1-5'
     # KST 20:00 on Mon-Fri (UTC 11:00 Mon-Fri).
     - cron: '0 11 * * 1-5'
-    # Hourly all week; the calendar gate keeps it for weekends/holidays only.
+    # Hourly all week; the calendar gate keeps it for weekends/known holidays outside the morning sweep.
     - cron: '0 * * * *'
   workflow_dispatch:
 
@@ -56,6 +56,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Verify schedule and retention tests
+        run: npm test
       - name: Record actual workflow start
         shell: bash
         run: echo "EDGE_ACTIONS_STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
