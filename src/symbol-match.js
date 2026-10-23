@@ -2,6 +2,8 @@ const DEFAULT_ALIASES = new Map([
   ['LS일렉트릭',{ticker:'010120',company:'LS ELECTRIC'}],
   ['LS ELECTRIC',{ticker:'010120',company:'LS ELECTRIC'}],
   ['삼성바이오',{ticker:'207940',company:'삼성바이오로직스'}],
+  ['삼성E&A',{ticker:'028050',company:'삼성E&A'}],
+  ['삼성 E&A',{ticker:'028050',company:'삼성E&A'}],
   ['SK하닉',{ticker:'000660',company:'SK하이닉스'}],
 ]);
 
