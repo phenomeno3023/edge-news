@@ -20,6 +20,10 @@ test('known headline shorthand does not fall through to ticker SK',()=>{
   assert.equal(matchSymbol('SK 실적 발표','',symbols).ticker,'034730');
 });
 
+test('Samsung E&A shorthand resolves to its listed issuer code',()=>{
+  assert.deepEqual(matchSymbol('영업익 예상치 두 배 삼성E&A 자사주 매입'),{ticker:'028050',company:'삼성E&A'});
+});
+
 test('DART corporation name can be used when the report title omits the issuer',()=>{
   assert.equal(matchSymbol('단일판매·공급계약 체결','삼성전자',symbols).ticker,'005930');
 });
