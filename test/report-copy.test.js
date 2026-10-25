@@ -18,7 +18,7 @@ test('current collection results remain copyable before the 08:50 final report e
  assert.match(report.textContent,/중간 결과입니다/);
  assert.match(report.textContent,/전체 수집 기사: 31건/);
  await button.onclick();
- assert.match(copied,/EDGE NEWS V1\.0 — 전체 결과보고서/);
+ assert.match(copied,/EDGE NXT V1\.0 — 전체 결과보고서/);
  assert.match(copied,/삼성E&A.*028050/);
  assert.match(copied,/테스트 기사 31/);
  assert.match(copied,/원문 공시를 확인/);
