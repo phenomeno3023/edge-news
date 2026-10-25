@@ -70,6 +70,6 @@ if(installButton){installButton.hidden=false;installButton.textContent='홈 화�
 if(typeof window.addEventListener==='function')window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();});
 bind(installButton,'click',()=>showInstallHelp());
 bind(installHelpClose,'click',()=>{if(installHelp)installHelp.hidden=true;});
-if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register(new URL('./sw.js?v=edge-nxt-mobile-ui-20261025c',location.href),{updateViaCache:'none'}).catch(()=>{});
+if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register(new URL('./sw.js?v=edge-nxt-mobile-ui-20261025d',location.href),{updateViaCache:'none'}).catch(()=>{});
 
 
