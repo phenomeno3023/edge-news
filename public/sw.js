@@ -1,4 +1,4 @@
-const VERSION='edge-nxt-step2-v1.0.6';
+const VERSION='edge-nxt-step2-v1.0.7';
 const SHELL=['./','./index.html','./style.css','./app.js?v=edge-nxt-step2-20261025','./nxt.js?v=edge-nxt-step2-20261025','./manifest.webmanifest','./icons/edge-news.svg','./icons/edge-news-192.png','./icons/edge-news-512.png','./data/news.json','./data/status.json'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('edge-news-')&&key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
@@ -9,8 +9,8 @@ self.addEventListener('fetch',event=>{
   event.respondWith(fetch(request).then(response=>{const copy=response.clone();caches.open(VERSION).then(cache=>cache.put('./index.html',copy));return response;}).catch(async()=>await caches.match('./index.html')||Response.error()));
   return;
  }
- if(url.pathname.endsWith('/data/news.json')||url.pathname.endsWith('/data/status.json')){
-  event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok)caches.open(VERSION).then(cache=>cache.put(request,response.clone()));return response;}).catch(async()=>{const cached=await caches.match(request)||await caches.match('./data/news.json');if(!cached)return Response.error();const headers=new Headers(cached.headers);headers.set('X-EDGE-STALE','true');return new Response(await cached.arrayBuffer(),{status:cached.status,statusText:cached.statusText,headers});}));
+ if(url.pathname.endsWith('/data/news.json')||url.pathname.endsWith('/data/status.json')||url.pathname.endsWith('/data/nxt.json')){
+  event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok)caches.open(VERSION).then(cache=>cache.put(request,response.clone()));return response;}).catch(async()=>{const isNxt=url.pathname.endsWith('/data/nxt.json');const cached=await caches.match(request)||(isNxt?null:await caches.match('./data/news.json'));if(!cached)return Response.error();const headers=new Headers(cached.headers);headers.set('X-EDGE-STALE','true');return new Response(await cached.arrayBuffer(),{status:cached.status,statusText:cached.statusText,headers});}));
   return;
  }
  event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{if(response.ok)caches.open(VERSION).then(cache=>cache.put(request,response.clone()));return response;})));
