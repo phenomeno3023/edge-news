@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "start:nxt": "node src/nxt/server.js",
+    "nxt:kis-auth": "node scripts/nxt-kis-smoke.js auth",
+    "nxt:kis-rest": "node scripts/nxt-kis-smoke.js rest",
+    "nxt:kis-ws-approval": "node scripts/nxt-kis-smoke.js ws-approval",
     "collect": "node src/collect.js",
     "export": "node src/export.js",
     "report:step3": "node scripts/build-step3-report.js",
