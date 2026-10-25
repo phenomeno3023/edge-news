@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
+    "start:nxt": "node src/nxt/server.js",
     "collect": "node src/collect.js",
     "export": "node src/export.js",
     "report:step3": "node scripts/build-step3-report.js",
