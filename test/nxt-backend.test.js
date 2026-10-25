@@ -6,11 +6,13 @@ import path from "node:path";
 import http from "node:http";
 import { loadNxtConfig, publicNxtConfigStatus } from "../src/nxt/config.js";
 import { createKisAuth } from "../src/nxt/kis-auth.js";
+import { createKisRestClient } from "../src/nxt/kis-client.js";
 import { createNxtRuntime } from "../src/nxt/runtime.js";
 import { validateUniverse, NEXTRADE_UNIVERSE_PAGE } from "../src/nxt/universe.js";
 import { buildNxtTop10, createNxtSnapshot } from "../src/nxt/top10.js";
 import { createNxtSocketManager } from "../src/nxt/websocket.js";
 import { createNxtApp } from "../src/nxt/server.js";
+import { openNxtStore } from "../src/nxt/store.js";
 
 const tempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "edge-nxt-test-"));
 
@@ -45,6 +47,22 @@ test("KIS credentials are only used in token requests and concurrent refresh sha
   } });
   const [a, b] = await Promise.all([auth.getAccessToken(), auth.getAccessToken()]);
   assert.equal(a, "token"); assert.equal(b, "token"); assert.equal(calls, 1);
+});
+
+test("REST client requests the NXT market and keeps returned ranking unverified", async () => {
+  const config = loadNxtConfig({ EDGE_NXT_ENABLED: "true", EDGE_NXT_KIS_APP_KEY: "key", EDGE_NXT_KIS_APP_SECRET: "secret" });
+  let requestUrl; let requestOptions;
+  const client = createKisRestClient({ config, auth: { getAccessToken: async () => "access-token" }, now: () => "2026-10-25T00:00:00.000Z", fetchImpl: async (url, options) => {
+    requestUrl = new URL(url); requestOptions = options;
+    return { ok: true, json: async () => ({ rt_cd: "0", output: [{ mksc_shrn_iscd: "005930", hts_kor_isnm: "삼성전자", stck_prpr: "100", prdy_ctrt: "2.5", acml_vol: "20", acml_tr_pbmn: "2000" }] }) };
+  } });
+  const result = await client.getNxtFluctuationRanking();
+  assert.equal(requestUrl.searchParams.get("fid_cond_mrkt_div_code"), "NX");
+  assert.equal(requestOptions.headers.tr_id, "FHPST01700000");
+  assert.equal(requestOptions.headers.authorization, "Bearer access-token");
+  assert.equal(result.items[0].ticker, "005930");
+  assert.equal(result.items[0].status, "UNVERIFIED");
+  assert.equal(result.liveVerified, false);
 });
 
 test("official-source universe requires an as-of date, items and stays empty when stale", () => {
@@ -160,5 +178,19 @@ test("standalone status and snapshot endpoints work without connecting to KIS", 
   assert.equal(pageResponse.status, 200);
   await new Promise((resolve) => server.close(resolve));
   app.locals.nxtRuntime.close();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("NXT SQLite store persists market data in the dedicated database file", () => {
+  const dir = tempDir(); const dbPath = path.join(dir, "edge-nxt-market.sqlite");
+  const store = openNxtStore(dbPath);
+  store.saveTick({ ticker: "005930", eventAt: "2026-10-25T17:00:00+09:00", receivedAt: "2026-10-25T08:00:00Z", sessionCode: "3", price: 1, changePercent: 1, volume: 2, turnover: 3, source: "mock test only" });
+  store.saveState({ state: "TEST" });
+  assert.equal(store.countTicks(), 1);
+  store.close();
+  const restored = openNxtStore(dbPath);
+  assert.equal(restored.countTicks(), 1);
+  assert.equal(restored.latestState().state, "TEST");
+  restored.close();
   fs.rmSync(dir, { recursive: true, force: true });
 });
