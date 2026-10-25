@@ -65,7 +65,7 @@ test("the Nextrade landing page alone cannot verify the eligibility list", () =>
 
 test("TOP10 only ranks fresh aftermarket ticks in a verified universe with verified metrics", () => {
   const now = Date.parse("2026-10-25T11:00:00Z");
-  const universe = { status: "VERIFIED", items: [{ ticker: "005930", name: "삼성전자" }, { ticker: "000660", name: "SK하이닉스" }] };
+  const universe = { status: "VERIFIED", asOf: "2026-10-25", items: [{ ticker: "005930", name: "삼성전자" }, { ticker: "000660", name: "SK하이닉스" }] };
   const ticks = [
     { ticker: "005930", price: 100, changePercent: 5, turnover: 200, eventAt: new Date(now).toISOString(), receivedAt: new Date(now).toISOString(), sessionCode: "3", market: "NXT", liveVerified: true, source: "KIS WebSocket H0NXCNT0" },
     { ticker: "000660", price: 200, changePercent: 99, turnover: 999, eventAt: new Date(now).toISOString(), receivedAt: new Date(now).toISOString(), sessionCode: "2", market: "NXT", liveVerified: true, source: "KIS WebSocket H0NXCNT0" }
@@ -74,7 +74,13 @@ test("TOP10 only ranks fresh aftermarket ticks in a verified universe with verif
   assert.deepEqual(buildNxtTop10(ticks, universe, { now }), []);
   const result = buildNxtTop10(ticks, universe, { now, changePercentBasisVerified: true, turnoverBasisVerified: true });
   assert.equal(result.length, 1); assert.equal(result[0].ticker, "005930"); assert.equal(result[0].rank, 1);
-  assert.equal(createNxtSnapshot({ connection: { connected: true }, ticks: [], universe }).connection.state, "CONNECTED_NO_TRADE");
+  const noTrade = createNxtSnapshot({ connection: { connected: true, state: "CONNECTED" }, ticks: [], universe });
+  assert.equal(noTrade.connection.state, "CONNECTED");
+  assert.equal(noTrade.dataState, "CONNECTED_NO_TRADE");
+  const stale = createNxtSnapshot({ connection: { connected: false, state: "DISCONNECTED" }, ticks: [{ ticker: "005930", eventAt: "2026-10-25T10:00:00Z", receivedAt: "2026-10-25T10:00:00Z", sessionCode: "3" }], universe, now: "2026-10-25T11:00:00Z" });
+  assert.equal(stale.connection.state, "DISCONNECTED");
+  assert.equal(stale.dataState, "STALE");
+  assert.equal(stale.lastTrades[0].status, "STALE");
 });
 
 test("WebSocket subscriptions are deduplicated and credentials absent prevents a connection", async () => {

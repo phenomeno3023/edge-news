@@ -27,7 +27,7 @@ Register all credentials only in the NXT backend service's private environment c
 - `GET /api/nxt/top10`
 - `GET /data/nxt.json` (same snapshot payload for the existing frontend contract)
 
-The database contains separate `ticks`, `snapshots`, `collection_state` and `universe_versions` tables. It never opens `DB_PATH` or imports the EDGE NEWS store.
+The database contains separate `ticks`, `snapshots`, `collection_state` and `universe_versions` tables. It never opens `DB_PATH` or imports the EDGE NEWS store. API output keeps WebSocket connection state separate from overall tick freshness (`dataState`) and reports each symbol's last event and receive time in `lastTrades`.
 
 ## Universe input
 
@@ -46,7 +46,7 @@ Once the official download file and its stated effective date are obtained, conv
 }
 ```
 
-The sample code above is a format illustration, not a real NXT-eligible stock. Do not put it in production data. The list must be refreshed within seven days and its `asOf` date must be no later than today; otherwise the backend returns no eligible tickers.
+The sample code above is a format illustration, not a real NXT-eligible stock. Do not put it in production data. The list must carry today's KST `asOf` date for TOP10 ranking; a prior-day or missing list yields no eligible tickers.
 
 ## NXT ranking guard
 
@@ -54,4 +54,4 @@ The WebSocket parser only treats `MARKET_CLS_CODE=3` as aftermarket. Ranking req
 
 ## Current deployment boundary
 
-The existing Render `edge-nxt-preview` is a static site. It cannot run the long-lived WebSocket process. This change only adds a standalone backend entry point; it does not alter the static preview, EDGE NEWS operation, Pages, schedules, or FINAL EDGE 1. No new Render service is created in this step.
+The existing Render `edge-nxt-preview` is a static site. It cannot run the long-lived WebSocket process. The current workspace has no EDGE NXT backend service. A Render Web Service can host the HTTP API and persistent WebSocket process in one process; a Background Worker runs continuously but cannot receive public HTTP requests, so it would require a separate API service. The smallest paid Render service plan is listed at $7/month, and persistent disk storage at $0.25/GB-month. A free Web Service spins down after 15 minutes of inactivity and has an ephemeral filesystem, so it cannot reliably retain SQLite state across restarts. Exact minimum disk size and final bill must be checked before setup. This change only adds a standalone backend entry point; it does not alter the static preview, EDGE NEWS operation, Pages, schedules, or FINAL EDGE 1. No new Render service is created in this step.

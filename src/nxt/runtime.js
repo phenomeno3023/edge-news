@@ -35,7 +35,7 @@ export function createNxtRuntime({ env = process.env, fetchImpl = fetch, WebSock
     },
     snapshot() {
       const saved = store.latestTicks();
-      const ticks = saved.filter((tick) => Date.now() - Date.parse(tick.receivedAt) <= config.staleAfterMs);
+      const ticks = saved;
       const connection = manager.snapshot();
       const snapshot = createNxtSnapshot({ connection, ticks, universe: runtime.universe, staleAfterMs: config.staleAfterMs });
       store.saveSnapshot(snapshot);

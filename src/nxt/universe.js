@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 export const NEXTRADE_UNIVERSE_PAGE = "https://nextrade.co.kr/menu/marketData/menuList.do";
 const tickerPattern = /^\d{6}$/;
 
-export function validateUniverse(document, { today = new Date().toISOString().slice(0, 10), maxAgeDays = 7 } = {}) {
+export function validateUniverse(document, { today = new Date().toISOString().slice(0, 10), maxAgeDays = 0 } = {}) {
   if (!document || typeof document !== "object" || !Array.isArray(document.items)) {
     return { status: "UNVERIFIED", reason: "UNIVERSE_DOCUMENT_INVALID", items: [] };
   }
