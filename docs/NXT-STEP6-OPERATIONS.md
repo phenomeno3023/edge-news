@@ -4,12 +4,12 @@ Checked 2026-10-25 (KST). This document records public-source facts separately f
 
 ## Nextrade eligible universe
 
-- The 2026 Q4 notice says NXT will not perform a regular quarterly universe change and will keep the 606 currently traded securities through the end of December. It reports 335 KOSPI and 271 KOSDAQ instruments.
+- The 2026 Q4 notice says NXT will not perform a regular quarterly universe change and, when posted on 2026-09-21, planned to keep the then-current 606 traded securities through the end of December. It reports 335 KOSPI and 271 KOSDAQ instruments.
 - The latest adjustment notice, posted 2026-10-21 18:00, excludes 듀켐바이오 and 범한퓨얼셀 from the regular NXT markets (pre/main/after) and closing-price market from 2026-10-26 through the end of December.
 - Both notices show zero attachments in the official notice detail. No official downloadable full list with code/name rows was available in those notices when checked.
 - Nextrade's regular-market trading status page is a public query page and says its figures are delayed by 20 minutes. It is not a downloadable, dated full-universe file. The page returned zero securities for the 2026-10-25 Sunday query. It therefore cannot verify a complete current universe in this run.
 - Do not synthesize the 606 rows from KRX listings, the two exclusion names, or the notice's counts. Keep `data/nxt-universe.json` absent/unverified until a complete dated official NXT list is obtained.
-- The expected count after the two scheduled exclusions would be 604 only if both are in the 606 baseline and there are no other list changes. This is an inference, not an observed official count.
+- Do not calculate a current or post-exclusion count from the notice total. The full roster and all interim changes were not available as a dated downloadable member list during this check.
 
 Official sources:
 
@@ -54,3 +54,4 @@ KIS primary references:
 ## Test boundary
 
 Automated tests use local mock responses only. They do not certify KIS account access, a real NXT execution, a live TOP10, the official member-by-member universe, Render deployment, or mobile device behavior.
+
