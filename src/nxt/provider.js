@@ -58,6 +58,38 @@ function validTicker(value) {
   return /^\d{6}$/.test(ticker) ? ticker : null;
 }
 
+export function createNxtWebSocketSubscription({ approvalKey, ticker, subscribe = true, enabled = false } = {}) {
+  if (enabled !== true) throw new Error("NXT_COLLECTION_DISABLED");
+  if (typeof approvalKey !== "string" || !approvalKey.trim()) throw new Error("WS_APPROVAL_KEY_REQUIRED");
+  const code = validTicker(ticker);
+  if (!code) throw new Error("WS_TICKER_INVALID");
+  return {
+    header: { approval_key: approvalKey, custtype: "P", tr_type: subscribe ? "1" : "0", "content-type": "utf-8" },
+    body: { input: { tr_id: NXT_WS_TR_ID, tr_key: code } }
+  };
+}
+
+export function reconnectDelayMs(attempt) {
+  if (!Number.isInteger(attempt) || attempt < 1) throw new Error("RECONNECT_ATTEMPT_INVALID");
+  return Math.min(1000 * (2 ** (attempt - 1)), 30_000);
+}
+
+export function isEligibleNxtTicker(ticker, { eligibleTickers, listAsOf, marketDate } = {}) {
+  return validTicker(ticker) !== null
+    && Array.isArray(eligibleTickers)
+    && listAsOf === marketDate
+    && eligibleTickers.some((entry) => validTicker(entry?.ticker ?? entry) === ticker);
+}
+
+export function markNxtConnectionDropped(snapshot) {
+  return {
+    ...(snapshot && typeof snapshot === "object" ? snapshot : {}),
+    status: "STALE",
+    liveVerified: false,
+    items: Array.isArray(snapshot?.items) ? snapshot.items.map((item) => ({ ...item, status: "STALE", liveVerified: false })) : []
+  };
+}
+
 export function parseNxtRestRankingResponse(payload, receivedAt = new Date().toISOString()) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("REST_RESPONSE_NOT_OBJECT");
   if (String(payload.rt_cd ?? "") !== "0") throw new Error(`REST_PROVIDER_ERROR:${payload.msg_cd ?? "UNKNOWN"}`);
