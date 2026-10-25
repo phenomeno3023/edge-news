@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   NXT_WS_FIELDS,
+  NXT_SESSION_NAMES,
   classifyTickStatus,
   createNxtWebSocketSubscription,
   createNxtRestRequest,
@@ -46,13 +47,29 @@ test("WebSocket parser reads official NXT fields and rejects malformed frames", 
   values[13] = "1000";
   values[14] = "71000000";
   values[33] = "20261025";
+  values[46] = "3";
   const parsed = parseNxtWebSocketMessage(`0|H0NXCNT0|001|${values.join("|")}`, "2026-10-24T23:15:30Z");
   assert.equal(parsed.kind, "trade");
   assert.equal(parsed.tick.eventAt, "2026-10-25T08:15:30+09:00");
   assert.equal(parsed.tick.turnover, 71000000);
+  assert.equal(parsed.tick.receivedAt, "2026-10-24T23:15:30Z");
+  assert.equal(parsed.tick.sessionCode, "3");
+  assert.equal(parsed.tick.session, "AFTERMARKET");
   assert.equal(parsed.tick.status, "UNVERIFIED");
   assert.throws(() => parseNxtWebSocketMessage("0|H0NXCNT0|001|005930|bad"), /WS_FIELD_COUNT_MISMATCH/);
   assert.throws(() => parseNxtWebSocketMessage(`0|H0STCNT0|001|${values.join("|")}`), /WS_TR_ID_MISMATCH/);
+});
+
+test("KIS market session codes are explicit and unknown sessions are not inferred", () => {
+  assert.deepEqual(NXT_SESSION_NAMES, { "1": "PREMARKET", "2": "REGULAR", "3": "AFTERMARKET", "5": "CLOSE" });
+  const values = Array(NXT_WS_FIELDS.length).fill("0");
+  values[0] = "005930"; values[1] = "081530"; values[2] = "71000"; values[33] = "20261025";
+  for (const [code, expected] of [["1", "PREMARKET"], ["2", "REGULAR"], ["3", "AFTERMARKET"], ["5", "CLOSE"], ["9", "UNKNOWN"]]) {
+    values[46] = code;
+    const tick = parseNxtWebSocketMessage(`0|H0NXCNT0|001|${values.join("|")}`).tick;
+    assert.equal(tick.session, expected);
+    if (code === "9") assert.equal(tick.sessionCode, null);
+  }
 });
 
 test("WebSocket subscription requires opt-in and builds NXT-only subscription envelope", () => {
@@ -90,9 +107,12 @@ test("freshness gate prevents unsupported LIVE status and detects stale or delay
 
 test("TOP10 order uses percent then turnover then ticker and exact ticker news match", () => {
   const rows = [
-    { ticker: "000003", changePercent: 5, turnover: 100, price: 1, status: "LIVE" },
-    { ticker: "000002", changePercent: 5, turnover: 200, price: 1, status: "LIVE" },
-    { ticker: "000001", changePercent: 6, turnover: 50, price: 1, status: "UNVERIFIED" }
+    { ticker: "000003", changePercent: 5, turnover: 100, price: 1, status: "LIVE", market: "NXT", sessionCode: "3" },
+    { ticker: "000002", changePercent: 5, turnover: 200, price: 1, status: "LIVE", market: "NXT", sessionCode: "3" },
+    { ticker: "000001", changePercent: 6, turnover: 50, price: 1, status: "UNVERIFIED", market: "NXT", sessionCode: "3" },
+    { ticker: "000004", changePercent: 9, turnover: 500, price: 1, status: "LIVE", market: "NXT", sessionCode: "2" },
+    { ticker: "000005", changePercent: 8, turnover: 500, price: 1, status: "LIVE", market: "KRX", sessionCode: "3" },
+    { ticker: "000006", changePercent: 7, turnover: 500, price: 1, status: "LIVE", market: "NXT" }
   ];
   assert.deepEqual(orderNxtTop10(rows).map((x) => x.ticker), ["000002", "000003"]);
   assert.deepEqual(joinNewsByTicker([{ ticker: "005930" }, { ticker: "5930" }], "005930"), [{ ticker: "005930" }]);
