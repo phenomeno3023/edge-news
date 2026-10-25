@@ -1,5 +1,5 @@
-const VERSION='edge-nxt-step2-v1.0.7';
-const SHELL=['./','./index.html','./style.css','./app.js?v=edge-nxt-step2-20261025','./nxt.js?v=edge-nxt-step2-20261025','./manifest.webmanifest','./icons/edge-news.svg','./icons/edge-news-192.png','./icons/edge-news-512.png','./data/news.json','./data/status.json'];
+const VERSION='edge-nxt-mobile-ui-v1.0.8';
+const SHELL=['./','./index.html','./style.css','./app.js?v=edge-nxt-mobile-ui-20261025','./nxt.js?v=edge-nxt-mobile-ui-20261025','./manifest.webmanifest','./icons/edge-nxt.svg','./icons/edge-nxt-192.png','./icons/edge-nxt-512.png','./icons/edge-nxt-maskable-512.png','./data/news.json','./data/status.json'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>(key.startsWith('edge-news-')||key.startsWith('edge-nxt-'))&&key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
@@ -15,3 +15,4 @@ self.addEventListener('fetch',event=>{
  }
  event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{if(response.ok)caches.open(VERSION).then(cache=>cache.put(request,response.clone()));return response;})));
 });
+
