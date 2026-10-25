@@ -21,6 +21,12 @@ export const NXT_WS_FIELDS = Object.freeze([
   "PRDY_SMNS_HOUR_ACML_VOL", "PRDY_SMNS_HOUR_ACML_VOL_RATE",
   "HOUR_CLS_CODE", "MRKT_TRTM_CLS_CODE", "VI_STND_PRC", "MARKET_CLS_CODE"
 ]);
+export const NXT_SESSION_NAMES = Object.freeze({
+  "1": "PREMARKET",
+  "2": "REGULAR",
+  "3": "AFTERMARKET",
+  "5": "CLOSE"
+});
 
 const REST_DEFAULTS = Object.freeze({
   fid_cond_mrkt_div_code: "NX",
@@ -158,6 +164,8 @@ export function parseNxtWebSocketMessage(raw, receivedAt = new Date().toISOStrin
       turnover,
       eventAt: eventTimeKst(row.BSOP_DATE, row.STCK_CNTG_HOUR),
       receivedAt,
+      sessionCode: Object.hasOwn(NXT_SESSION_NAMES, row.MARKET_CLS_CODE) ? row.MARKET_CLS_CODE : null,
+      session: NXT_SESSION_NAMES[row.MARKET_CLS_CODE] ?? "UNKNOWN",
       source: "KIS WebSocket H0NXCNT0",
       market: "NXT",
       status: "UNVERIFIED",
@@ -186,6 +194,8 @@ export function orderNxtTop10(rows) {
   return rows
     .filter((row) => ["LIVE", "DELAYED"].includes(row.status)
       && validTicker(row.ticker)
+      && row.market === "NXT"
+      && String(row.sessionCode ?? "") === "3"
       && Number.isFinite(row.changePercent)
       && Number.isFinite(row.price) && row.price > 0)
     .slice()
