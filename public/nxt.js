@@ -54,10 +54,11 @@
     const meta = $("#nxt-meta");
     if (!list || !status || !meta) return;
     if (!rows.length) {
-      status.textContent = "NXT 실시간 시세 연결 대기 · 검증된 데이터가 없어 순위를 표시하지 않습니다.";
-      status.dataset.state = "UNVERIFIED";
+      const hasStale = root?.status === "STALE" || (Array.isArray(root?.items) && root.items.some((item) => statusFor(item, root) === "STALE"));
+      status.textContent = hasStale ? "STALE · 마지막 시세가 오래되어 순위를 숨겼습니다." : "NXT 실시간 시세 연결 대기 · 검증된 데이터가 없어 순위를 표시하지 않습니다.";
+      status.dataset.state = hasStale ? "STALE" : "UNVERIFIED";
       meta.textContent = root?.receivedAt ? `마지막 파일 확인 ${dateText(root.receivedAt)} · 출처 ${root.source || "확인 불가"}` : "실시간 시세 데이터 미수신";
-      list.innerHTML = '<div class="nxt-empty">NXT 실시간 시세 연결 대기<br><small>실제 체결 응답과 거래 대상 종목 검증 전까지 임의 TOP10을 만들지 않습니다.</small></div>';
+      list.innerHTML = hasStale ? '<div class="nxt-empty">오래된 시세를 숨겼습니다.<br><small>새 체결 데이터가 확인될 때까지 순위를 표시하지 않습니다.</small></div>' : '<div class="nxt-empty">NXT 실시간 시세 연결 대기<br><small>실제 체결 응답과 거래 대상 종목 검증 전까지 임의 TOP10을 만들지 않습니다.</small></div>';
       return;
     }
     const overall = rows.some((x) => statusFor(x, root) === "LIVE") ? "LIVE" : "DELAYED";
@@ -87,6 +88,11 @@
       if (!response.ok) throw new Error(`NXT data HTTP ${response.status}`);
       root = await response.json();
       if (!root || root.schemaVersion !== 1 || root.market !== "NXT" || !Array.isArray(root.items)) throw new Error("NXT data format invalid");
+      if (response.headers.get("X-EDGE-STALE") === "true") {
+        root.status = "STALE";
+        root.liveVerified = false;
+        root.items = root.items.map((item) => ({ ...item, status: "STALE" }));
+      }
     } catch (error) {
       if (status) {
         status.textContent = error?.missing ? "NXT 실시간 시세 연결 대기 · 게시된 데이터 파일이 없습니다." : "NXT 시세 데이터 연결 오류 · 뉴스 화면 상태와 별도로 확인하세요.";
