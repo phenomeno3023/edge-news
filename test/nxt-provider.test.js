@@ -3,11 +3,15 @@ import assert from "node:assert/strict";
 import {
   NXT_WS_FIELDS,
   classifyTickStatus,
+  createNxtWebSocketSubscription,
   createNxtRestRequest,
+  isEligibleNxtTicker,
   joinNewsByTicker,
+  markNxtConnectionDropped,
   orderNxtTop10,
   parseNxtRestRankingResponse,
-  parseNxtWebSocketMessage
+  parseNxtWebSocketMessage,
+  reconnectDelayMs
 } from "../src/nxt/provider.js";
 
 test("NXT REST request stays disabled unless explicitly enabled and pins NX market", () => {
@@ -49,6 +53,30 @@ test("WebSocket parser reads official NXT fields and rejects malformed frames", 
   assert.equal(parsed.tick.status, "UNVERIFIED");
   assert.throws(() => parseNxtWebSocketMessage("0|H0NXCNT0|001|005930|bad"), /WS_FIELD_COUNT_MISMATCH/);
   assert.throws(() => parseNxtWebSocketMessage(`0|H0STCNT0|001|${values.join("|")}`), /WS_TR_ID_MISMATCH/);
+});
+
+test("WebSocket subscription requires opt-in and builds NXT-only subscription envelope", () => {
+  assert.throws(() => createNxtWebSocketSubscription({ approvalKey: "fixture", ticker: "005930" }), /NXT_COLLECTION_DISABLED/);
+  const request = createNxtWebSocketSubscription({ approvalKey: "test-only-not-a-secret", ticker: "005930", enabled: true });
+  assert.equal(request.header.tr_type, "1");
+  assert.equal(request.body.input.tr_id, "H0NXCNT0");
+  assert.equal(request.body.input.tr_key, "005930");
+  assert.throws(() => createNxtWebSocketSubscription({ approvalKey: "fixture", ticker: "5930", enabled: true }), /WS_TICKER_INVALID/);
+});
+
+test("universe membership requires an exact ticker and same-day official list", () => {
+  const options = { eligibleTickers: ["005930", { ticker: "000660" }], listAsOf: "2026-10-25", marketDate: "2026-10-25" };
+  assert.equal(isEligibleNxtTicker("005930", options), true);
+  assert.equal(isEligibleNxtTicker("005930", { ...options, marketDate: "2026-10-26" }), false);
+  assert.equal(isEligibleNxtTicker("000001", options), false);
+});
+
+test("reconnect backoff is capped and a disconnect immediately stales snapshot", () => {
+  assert.equal(reconnectDelayMs(1), 1000);
+  assert.equal(reconnectDelayMs(6), 30_000);
+  const dropped = markNxtConnectionDropped({ liveVerified: true, items: [{ ticker: "005930", status: "LIVE" }] });
+  assert.equal(dropped.liveVerified, false);
+  assert.equal(dropped.items[0].status, "STALE");
 });
 
 test("freshness gate prevents unsupported LIVE status and detects stale or delayed ticks", () => {
