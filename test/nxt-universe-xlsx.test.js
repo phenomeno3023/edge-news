@@ -29,7 +29,8 @@ async function fixtureXlsx({ conflictingDuplicate = false, malformed = false, un
 test("official NXT XLSX parser preserves six-digit tickers and removes exact duplicates", async () => {
   const parsed = await parseOfficialNxtXlsx(await fixtureXlsx(), {
     fileName: "quarter-list.xlsx", sourceUrl: SOURCE, effectiveDate: "2026-07-01",
-    downloadedAt: "2026-06-26T09:00:00.000Z", expectedCount: 2, today: "2026-07-01"
+    downloadedAt: "2026-06-26T09:00:00.000Z", expectedCount: 2, today: "2026-07-01",
+    previous: { asOf: "2026-06-30", items: [{ ticker: "005930", name: "삼성전자" }, { ticker: "000001", name: "기존종목" }] }
   });
   assert.equal(parsed.validation.status, "VERIFIED");
   assert.equal(parsed.validation.usableForLive, true);
@@ -38,6 +39,8 @@ test("official NXT XLSX parser preserves six-digit tickers and removes exact dup
   assert.equal(parsed.archive.duplicateRowsRemoved, 1);
   assert.equal(parsed.archive.items.length, 2);
   assert.deepEqual(parsed.archive.items.map((item) => item.ticker), ["000660", "005930"]);
+  assert.deepEqual(parsed.validation.diff.added, [{ ticker: "000660", name: "SK하이닉스", }]);
+  assert.deepEqual(parsed.validation.diff.removed, [{ ticker: "000001", name: "기존종목" }]);
   assert.ok(/^[a-f0-9]{64}$/.test(parsed.archive.sha256));
 });
 
