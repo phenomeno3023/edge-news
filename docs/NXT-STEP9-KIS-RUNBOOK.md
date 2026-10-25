@@ -33,6 +33,18 @@ node scripts/nxt-kis-smoke.js ws-trade <SAME-DAY-OFFICIAL-TICKER> --timeout-ms=3
 - The ticker must be in an official NXT list whose effective date matches the market date. The historical Q3 file is not valid for this check.
 - The commands do not invoke any order endpoint. They are read-only market-data/authentication checks.
 
+## Manual official XLSX intake
+
+1. Download the original XLSX through the public Nextrade notice link and keep the original file unchanged. Record the notice URL and the effective date stated in the notice; do not infer an effective date from the download date.
+2. Copy the file to a local staging folder. Do not point `EDGE_NXT_UNIVERSE_PATH` at it yet.
+3. Run the existing importer, providing the official source URL, stated effective date, and official expected row count:
+
+```sh
+npm run nxt:universe-import -- ./staging/nxt-official.xlsx --source-url=https://www.nextrade.co.kr/official-notice-url --effective-date=YYYY-MM-DD --expected-count=NNN --out=./staging/nxt-universe-candidate.json
+```
+
+The tool reports the workbook sheets, extracted and unique row counts, duplicate removals, market counts, source URL, SHA-256, and validation status. It refuses to overwrite an existing candidate file. Review the generated candidate and the official notice before any later operator-approved activation. A Q3/archive-only workbook or a workbook without an explicit effective date is not a current universe and must not be promoted. The runtime continues to block LIVE TOP10 until it loads a same-day verified official universe.
+
 ## Safe error outcomes
 
 Smoke output is a short JSON record with a code, phase, and (when available) sanitized provider code. Provider messages, request/response bodies, app key, app secret, access token, and approval key are not printed.
