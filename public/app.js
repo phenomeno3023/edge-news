@@ -67,7 +67,8 @@ bind($('#copy-report'),'click',async()=>{const button=$('#copy-report'),text=$('
 const installButton=$('#install'),installHelp=$('#install-help'),installHelpText=$('#install-help-text'),installHelpClose=$('#install-help-close'),isSamsungInternet=/SamsungBrowser/i.test(navigator.userAgent||'');
 function showInstallHelp(){if(!installHelp)return;installHelp.hidden=false;if(installHelpText)installHelpText.textContent=isSamsungInternet?'삼성 인터넷 메뉴(≡)에서 “현재 페이지 추가” 또는 “홈 화면에 추가”를 선택해 웹 바로가기를 만드세요. 사이트의 앱 설치 아이콘을 통한 설치 요청은 지원하지 않습니다. Play 프로텍트 경고가 나타나면 설치를 진행하지 말고 닫으세요. EDGE NXT는 웹사이트에서 계속 이용하실 수 있습니다.':'브라우저 메뉴에서 “홈 화면에 추가” 또는 “바로가기 추가”를 선택하세요. 이 버튼은 앱 설치 요청을 실행하지 않습니다. EDGE NXT는 웹사이트에서 계속 이용하실 수 있습니다.';installHelp.scrollIntoView?.({behavior:'smooth',block:'nearest'});}
 if(installButton){installButton.hidden=false;installButton.textContent='홈 화면 바로가기';}
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();});
+if(typeof window.addEventListener==='function')window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();});
 bind(installButton,'click',()=>showInstallHelp());
 bind(installHelpClose,'click',()=>{if(installHelp)installHelp.hidden=true;});
 if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register(new URL('./sw.js?v=edge-news-window-20261023',location.href),{updateViaCache:'none'}).catch(()=>{});
+
