@@ -3,13 +3,7 @@ import { loadNxtConfig } from "../src/nxt/config.js";
 import { createKisAuth } from "../src/nxt/kis-auth.js";
 import { createKisRestClient } from "../src/nxt/kis-client.js";
 import { createNxtWebSocketSubscription, parseNxtWebSocketMessage } from "../src/nxt/provider.js";
-
-const SAFE_ERROR_CODES = new Map([
-  ["NXT_COLLECTION_DISABLED", "NXT_COLLECTION_DISABLED"],
-  ["NXT_CREDENTIALS_UNCONFIGURED", "KIS_CREDENTIALS_UNCONFIGURED"],
-  ["KIS_TOKEN_RESPONSE_INVALID", "KIS_TOKEN_RESPONSE_INVALID"],
-  ["KIS_WS_APPROVAL_RESPONSE_INVALID", "KIS_WS_APPROVAL_RESPONSE_INVALID"]
-]);
+import { classifyKisProviderMessage, safeKisError } from "../src/nxt/kis-errors.js";
 
 export function parseSmokeArgs(argv) {
   const [command, ...rest] = argv;
@@ -24,34 +18,29 @@ export function parseSmokeArgs(argv) {
   return { command, ticker, timeoutMs };
 }
 
-function safeErrorCode(error) {
-  const message = String(error?.message ?? "");
-  if (SAFE_ERROR_CODES.has(message)) return SAFE_ERROR_CODES.get(message);
-  if (/^KIS_AUTH_HTTP_\d{3}$/.test(message)) return message;
-  if (/^KIS_REST_HTTP_\d{3}$/.test(message)) return message;
-  if (message.startsWith("REST_PROVIDER_ERROR:")) return "KIS_REST_PROVIDER_REJECTED";
-  return "KIS_CHECK_FAILED";
-}
-
 function checkCredentials(config) {
   if (!config.enabled) return { ok: false, code: "NXT_COLLECTION_DISABLED" };
   if (!config.configured) return { ok: false, code: "KIS_CREDENTIALS_UNCONFIGURED", missing: config.missing };
   return null;
 }
 
-function websocketTrade({ WebSocketImpl, config, approvalKey, ticker, timeoutMs }) {
+function websocketTrade({ WebSocketImpl, config, approvalKey, ticker, timeoutMs, now }) {
   if (typeof WebSocketImpl !== "function") throw new Error("KIS_WEBSOCKET_UNAVAILABLE");
   return new Promise((resolve) => {
     let settled = false;
     let connected = false;
     let subscriptionAck = false;
+    let subscriptionSent = false;
+    let unsubscribeSent = false;
+    let acknowledgedAt = null;
     let lastSessionCode = null;
-    const ws = new WebSocketImpl(config.wsUrl);
+    let ws;
     const timer = setTimeout(() => finish({
       ok: false,
-      code: "WS_TRADE_TIMEOUT",
+      code: !connected ? "WS_CONNECTION_TIMEOUT" : !subscriptionAck ? "WS_SUBSCRIPTION_ACK_TIMEOUT" : "WS_TRADE_TIMEOUT",
       connected,
       subscriptionAck,
+      actualTradeReceived: false,
       ticker,
       lastSessionCode
     }), timeoutMs);
@@ -60,16 +49,29 @@ function websocketTrade({ WebSocketImpl, config, approvalKey, ticker, timeoutMs 
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      if (connected && subscriptionSent && ws?.readyState === 1) {
+        try {
+          ws.send(JSON.stringify(createNxtWebSocketSubscription({ approvalKey, ticker, subscribe: false, enabled: true })));
+          unsubscribeSent = true;
+        } catch {}
+      }
       try { ws.close(); } catch {}
-      resolve(result);
+      resolve({ ...result, unsubscribeSent });
+    }
+
+    try { ws = new WebSocketImpl(config.wsUrl); }
+    catch {
+      finish({ ok: false, code: "WS_CONNECTION_FAILED", connected: false, subscriptionAck: false, actualTradeReceived: false, ticker, lastSessionCode });
+      return;
     }
 
     ws.addEventListener("open", () => {
       connected = true;
       try {
         ws.send(JSON.stringify(createNxtWebSocketSubscription({ approvalKey, ticker, enabled: true })));
+        subscriptionSent = true;
       } catch {
-        finish({ ok: false, code: "WS_SUBSCRIBE_FAILED", connected, subscriptionAck: false, ticker });
+        finish({ ok: false, code: "WS_SUBSCRIBE_FAILED", connected, subscriptionAck: false, actualTradeReceived: false, ticker, lastSessionCode });
       }
     });
     ws.addEventListener("message", (event) => {
@@ -77,18 +79,26 @@ function websocketTrade({ WebSocketImpl, config, approvalKey, ticker, timeoutMs 
       if (raw.trim().startsWith("{")) {
         try {
           const control = JSON.parse(raw);
+          const header = control?.header ?? {};
           const body = control?.body;
-          if (body && Object.hasOwn(body, "rt_cd")) {
-            if (String(body.rt_cd) === "0") subscriptionAck = true;
-            else finish({ ok: false, code: "WS_SUBSCRIPTION_REJECTED", connected, subscriptionAck: false, ticker });
+          const matchingSubscription = header.tr_id === "H0NXCNT0" && header.tr_key === ticker;
+          if (matchingSubscription && body && Object.hasOwn(body, "rt_cd")) {
+            if (String(body.rt_cd) === "0") {
+              subscriptionAck = true;
+              acknowledgedAt = now();
+            } else {
+              const providerCode = /^[A-Za-z0-9_-]{1,32}$/.test(String(body.msg_cd ?? "")) ? String(body.msg_cd) : undefined;
+              const code = classifyKisProviderMessage(body.msg1);
+              finish({ ok: false, code, ...(providerCode ? { providerCode } : {}), connected, subscriptionAck: false, actualTradeReceived: false, ticker, lastSessionCode });
+            }
           }
         } catch {
-          finish({ ok: false, code: "WS_CONTROL_RESPONSE_INVALID", connected, subscriptionAck, ticker });
+          finish({ ok: false, code: "WS_CONTROL_RESPONSE_INVALID", connected, subscriptionAck, actualTradeReceived: false, ticker, lastSessionCode });
         }
         return;
       }
       try {
-        const parsed = parseNxtWebSocketMessage(raw);
+        const parsed = parseNxtWebSocketMessage(raw, now());
         if (parsed.kind !== "trade" || parsed.tick.ticker !== ticker) return;
         lastSessionCode = parsed.tick.sessionCode;
         if (parsed.tick.sessionCode !== "3") return;
@@ -97,6 +107,8 @@ function websocketTrade({ WebSocketImpl, config, approvalKey, ticker, timeoutMs 
           code: "NXT_AFTERMARKET_TRADE_RECEIVED",
           connected,
           subscriptionAck,
+          acknowledgedAt,
+          actualTradeReceived: true,
           ticker: parsed.tick.ticker,
           sessionCode: parsed.tick.sessionCode,
           eventAt: parsed.tick.eventAt,
@@ -112,14 +124,14 @@ function websocketTrade({ WebSocketImpl, config, approvalKey, ticker, timeoutMs 
         // Ignore unrelated/non-trade frames. Never include provider payloads in logs.
       }
     });
-    ws.addEventListener("error", () => finish({ ok: false, code: "WS_SOCKET_ERROR", connected, subscriptionAck, ticker, lastSessionCode }));
+    ws.addEventListener("error", () => finish({ ok: false, code: "WS_SOCKET_ERROR", connected, subscriptionAck, actualTradeReceived: false, ticker, lastSessionCode }));
     ws.addEventListener("close", () => {
-      if (!settled) finish({ ok: false, code: "WS_CLOSED_BEFORE_TRADE", connected, subscriptionAck, ticker, lastSessionCode });
+      if (!settled) finish({ ok: false, code: subscriptionAck ? "WS_CLOSED_BEFORE_TRADE" : "WS_CLOSED_BEFORE_ACK", connected, subscriptionAck, actualTradeReceived: false, ticker, lastSessionCode });
     });
   });
 }
 
-export async function runSmoke(argv, { env = process.env, fetchImpl = fetch, WebSocketImpl = globalThis.WebSocket } = {}) {
+export async function runSmoke(argv, { env = process.env, fetchImpl = fetch, WebSocketImpl = globalThis.WebSocket, now = () => new Date().toISOString() } = {}) {
   const { command, ticker, timeoutMs } = parseSmokeArgs(argv);
   const config = loadNxtConfig(env);
   const notReady = checkCredentials(config);
@@ -151,7 +163,7 @@ export async function runSmoke(argv, { env = process.env, fetchImpl = fetch, Web
     };
   }
   const approvalKey = await auth.getWebSocketApprovalKey();
-  return websocketTrade({ WebSocketImpl, config, approvalKey, ticker, timeoutMs });
+  return websocketTrade({ WebSocketImpl, config, approvalKey, ticker, timeoutMs, now });
 }
 
 async function main() {
@@ -160,7 +172,8 @@ async function main() {
     console.log(JSON.stringify(result));
     if (!result.ok) process.exitCode = 2;
   } catch (error) {
-    console.log(JSON.stringify({ ok: false, code: safeErrorCode(error) }));
+    const command = process.argv[2] ?? "unknown";
+    console.log(JSON.stringify(safeKisError(error, command)));
     process.exitCode = 2;
   }
 }

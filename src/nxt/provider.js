@@ -98,7 +98,12 @@ export function markNxtConnectionDropped(snapshot) {
 
 export function parseNxtRestRankingResponse(payload, receivedAt = new Date().toISOString()) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("REST_RESPONSE_NOT_OBJECT");
-  if (String(payload.rt_cd ?? "") !== "0") throw new Error(`REST_PROVIDER_ERROR:${payload.msg_cd ?? "UNKNOWN"}`);
+  if (String(payload.rt_cd ?? "") !== "0") {
+    const error = new Error(`REST_PROVIDER_ERROR:${payload.msg_cd ?? "UNKNOWN"}`);
+    error.providerCode = String(payload.msg_cd ?? "UNKNOWN");
+    error.providerMessage = String(payload.msg1 ?? "");
+    throw error;
+  }
   if (!Array.isArray(payload.output)) throw new Error("REST_OUTPUT_NOT_ARRAY");
   const rows = payload.output.map((row) => {
     const ticker = validTicker(row?.mksc_shrn_iscd ?? row?.stck_shrn_iscd);
@@ -142,10 +147,14 @@ export function parseNxtWebSocketMessage(raw, receivedAt = new Date().toISOStrin
     try { control = JSON.parse(trimmed); } catch { throw new Error("WS_CONTROL_JSON_INVALID"); }
     return { kind: "control", control };
   }
-  const [encryptionFlag, trId, recordCount, ...values] = trimmed.split("|");
+  const [encryptionFlag, trId, recordCount, ...payloadParts] = trimmed.split("|");
   if (encryptionFlag !== "0") throw new Error("WS_ENCRYPTED_OR_UNSUPPORTED_FRAME");
   if (trId !== NXT_WS_TR_ID) throw new Error("WS_TR_ID_MISMATCH");
   if (!/^\d+$/.test(recordCount ?? "") || Number(recordCount) < 1) throw new Error("WS_RECORD_COUNT_INVALID");
+  // KIS sends the field payload with `^` delimiters. Accept the legacy pipe
+  // fixture shape as well, while treating the frame header's pipes separately.
+  const payload = payloadParts.join("|");
+  const values = payload.includes("^") ? payload.split("^") : payload.split("|");
   if (values.length !== NXT_WS_FIELDS.length) throw new Error("WS_FIELD_COUNT_MISMATCH");
   const row = Object.fromEntries(NXT_WS_FIELDS.map((field, i) => [field, values[i]]));
   const ticker = validTicker(row.MKSC_SHRN_ISCD);
