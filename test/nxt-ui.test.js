@@ -23,7 +23,7 @@ test("NXT view does not invoke Android install prompts and treats absent data as
     read("public/index.html"), read("public/app.js"), read("public/nxt.js"),
     read("public/manifest.webmanifest"), read("public/sw.js"), read("public/style.css")
   ]);
-  assert.match(html, /id="install">홈 화면 바로가기/);
+  assert.match(html, /id="install" type="button">홈 화면 바로가기/);
   assert.match(app, /beforeinstallprompt/);
   assert.doesNotMatch(app, /\.prompt\s*\(/);
   assert.match(nxt, /NXT_DATA_NOT_PUBLISHED/);
