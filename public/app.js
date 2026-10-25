@@ -47,7 +47,7 @@ async function load(){let dataLoaded=false;try{let d,staticMode=false,stale=fals
   '\n등급은 뉴스 중요도 분류이며 실제 주가 상승을 예측하거나 보장하지 않습니다.'
  ].join('\n');
  setText('#report',currentReport);const reportCopyButton=$('#copy-report');if(reportCopyButton)reportCopyButton.disabled=false;setText('#copy-status','');
- setText('#notice-title',stale?'저장된 뉴스 · 최신 수집 결과가 아닙니다':'수집 범위 상태');setText('#feed-title',stale?'마지막 저장 뉴스':'오늘 및 휴장기간 뉴스');$('#notice')?.classList.toggle('stale',stale);setText('#notice span',stale?`네트워크 오류 또는 정적 배포 갱신 지연입니다. 마지막 수집 시각: ${run?.finished_at?fmt(run.finished_at):'확인 불가'} · ${sourceSummary}`:statusFileNote?`${statusFileNote} · ${sourceSummary}`:run?.error?`수집 경고: ${run.error} / ${sourceSummary}`:sourceSummary);
+ setText('#notice-title',stale?'저장된 뉴스 · 최신 수집 결과가 아닙니다':'수집 범위 상태');setText('#feed-title-text',stale?'마지막 저장 뉴스':'오늘 및 휴장기간 뉴스');$('#notice')?.classList.toggle('stale',stale);setText('#notice span',stale?`네트워크 오류 또는 정적 배포 갱신 지연입니다. 마지막 수집 시각: ${run?.finished_at?fmt(run.finished_at):'확인 불가'} · ${sourceSummary}`:statusFileNote?`${statusFileNote} · ${sourceSummary}`:run?.error?`수집 경고: ${run.error} / ${sourceSummary}`:sourceSummary);
  const feed=$('#feed');if(feed)feed.innerHTML=d.items.length?d.items.map(x=>`<article class="item"><div class="itemtop"><span class="pill ${escapeHtml(x.grade)}">${escapeHtml(x.grade)}급 · ${escapeHtml(x.category)}</span><span class="meta">게시 ${escapeHtml(fmt(x.published_at))} · 확인 ${escapeHtml(fmt(x.first_seen_at))}</span></div><h3><a href="${escapeHtml(x.url)}" target="_blank" rel="noopener">${escapeHtml(x.title)}</a></h3><div class="chips">${x.status==='corrected'?'<span class="chip">정정 공시</span>':''}${x.company?`<span class="chip">${escapeHtml(x.company)}</span>`:''}${x.ticker?`<span class="chip">${escapeHtml(x.ticker)}</span>`:''}<span class="chip">${escapeHtml(x.source)}${x.is_disclosure?' · 공시':''}</span>${parseArray(x.amounts).map(a=>`<span class="chip">${escapeHtml(a)}</span>`).join('')}</div><p class="body">${escapeHtml(x.summary)}</p><div class="analysis"><b>분석 의견:</b> ${escapeHtml(x.impact)}<br><b>확인 위험:</b> ${escapeHtml(x.risks)}</div><div class="links"><a href="${escapeHtml(x.url)}" target="_blank" rel="noopener">원문 열기 ↗</a></div></article>`).join(''):'<div class="empty">아직 표시할 기사가 없습니다.<br>수집원 연결이 되지 않았거나 실행 오류가 있는지 위 상태를 확인해 주세요.</div>';
  }catch(e){
  console.error(dataLoaded?'EDGE NXT screen rendering failed':'EDGE NXT news data request or validation failed',e);
@@ -70,6 +70,6 @@ if(installButton){installButton.hidden=false;installButton.textContent='홈 화�
 if(typeof window.addEventListener==='function')window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();});
 bind(installButton,'click',()=>showInstallHelp());
 bind(installHelpClose,'click',()=>{if(installHelp)installHelp.hidden=true;});
-if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register(new URL('./sw.js?v=edge-nxt-mobile-ui-20261025b',location.href),{updateViaCache:'none'}).catch(()=>{});
+if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register(new URL('./sw.js?v=edge-nxt-mobile-ui-20261025c',location.href),{updateViaCache:'none'}).catch(()=>{});
 
 

@@ -15,9 +15,10 @@ test("EDGE NXT view coexists with the legacy news screen and keeps the old URL",
   assert.match(html, /id="search"/);
   assert.match(html, /id="grade"/);
   assert.match(html, /id="category"/);
-  assert.match(html, /edge-nxt-mobile-ui-20261025b/);
+  assert.match(html, /edge-nxt-mobile-ui-20261025c/);
   assert.match(html, /edge-nxt\.svg/);
   assert.match(html, /NXT MARKET DATA/);
+  assert.match(html, /id="feed-title-text"/);
 });
 
 test("NXT view does not invoke Android install prompts and treats absent data as pending", async () => {
@@ -27,6 +28,7 @@ test("NXT view does not invoke Android install prompts and treats absent data as
   ]);
   assert.match(html, /id="install" type="button">홈 화면 안내/);
   assert.match(app, /beforeinstallprompt/);
+  assert.match(app, /setText\(\'#feed-title-text\'/);
   assert.doesNotMatch(app, /\.prompt\s*\(/);
   assert.match(nxt, /NXT_DATA_NOT_PUBLISHED/);
   assert.match(nxt, /검증된 데이터가 없어 순위를 표시하지 않습니다/);
@@ -34,9 +36,9 @@ test("NXT view does not invoke Android install prompts and treats absent data as
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"purpose": "maskable"/);
   assert.match(manifest, /edge-nxt-maskable-512\.png/);
-  assert.match(serviceWorker, /edge-nxt-mobile-ui-v1\.0\.9/);
+  assert.match(serviceWorker, /edge-nxt-mobile-ui-v1\.0\.10/);
   assert.match(serviceWorker, /edge-nxt-maskable-512\.png/);
-  assert.match(app, /edge-nxt-mobile-ui-20261025b/);
+  assert.match(app, /edge-nxt-mobile-ui-20261025c/);
   assert.match(serviceWorker, /data\/nxt\.json/);
   assert.match(css, /@media\(max-width:650px\).*nxt-list/s);
 });
