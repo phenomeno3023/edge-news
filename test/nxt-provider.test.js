@@ -44,6 +44,7 @@ test("WebSocket parser reads official NXT fields and rejects malformed frames", 
   values[1] = "081530";
   values[2] = "71000";
   values[5] = "1.25";
+  values[12] = "7";
   values[13] = "1000";
   values[14] = "71000000";
   values[33] = "20261025";
@@ -52,6 +53,8 @@ test("WebSocket parser reads official NXT fields and rejects malformed frames", 
   assert.equal(parsed.kind, "trade");
   assert.equal(parsed.tick.eventAt, "2026-10-25T08:15:30+09:00");
   assert.equal(parsed.tick.turnover, 71000000);
+  assert.equal(parsed.tick.tradeVolume, 7);
+  assert.equal(parsed.tick.volume, 1000);
   assert.equal(parsed.tick.receivedAt, "2026-10-24T23:15:30Z");
   assert.equal(parsed.tick.sessionCode, "3");
   assert.equal(parsed.tick.session, "AFTERMARKET");

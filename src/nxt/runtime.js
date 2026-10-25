@@ -12,7 +12,7 @@ export function createNxtRuntime({ env = process.env, fetchImpl = fetch, WebSock
   const auth = createKisAuth({ config, fetchImpl });
   const rest = createKisRestClient({ config, auth, fetchImpl });
   const universePromise = loadUniverse(config.universePath);
-  const manager = createNxtSocketManager({ config, auth, store, WebSocketImpl,
+  const manager = createNxtSocketManager({ config, auth, store, WebSocketImpl, sessionPolicy: "aftermarket",
     eligibleTickers: () => {
       // The manager is started only after the universe is loaded by the service.
       return runtime.universe?.items?.map((item) => item.ticker) ?? [];

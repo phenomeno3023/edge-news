@@ -152,6 +152,7 @@ export function parseNxtWebSocketMessage(raw, receivedAt = new Date().toISOStrin
   const price = numberOrNull(row.STCK_PRPR);
   const changePercent = numberOrNull(row.PRDY_CTRT);
   const volume = numberOrNull(row.ACML_VOL);
+  const tradeVolume = numberOrNull(row.CNTG_VOL);
   const turnover = numberOrNull(row.ACML_TR_PBMN);
   if (!ticker || price === null || price <= 0) throw new Error("WS_REQUIRED_TRADE_FIELDS_INVALID");
   return {
@@ -160,6 +161,10 @@ export function parseNxtWebSocketMessage(raw, receivedAt = new Date().toISOStrin
       ticker,
       price,
       changePercent,
+      // KIS field names distinguish the last execution quantity from the
+      // accumulated session quantity. Keep both; do not relabel cumulative
+      // volume as the size of the individual trade.
+      tradeVolume,
       volume,
       turnover,
       eventAt: eventTimeKst(row.BSOP_DATE, row.STCK_CNTG_HOUR),
