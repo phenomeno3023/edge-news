@@ -58,6 +58,70 @@ test("catalyst classification separates buyback from cancellation and does not u
   assert.ok(result.risks.some((risk) => risk.code === "PREPRICING_NOT_CHECKED" && !risk.verified));
 });
 
+test("detailed analysis distinguishes a buyback decision from completed execution and cancellation", () => {
+  const decision = classifyNxtNews({ title: "자사주 매입 계획 및 소각 결정", amounts: ["7800억원"] }, now);
+  assert.equal(decision.buybackState, "DECIDED_NOT_EXECUTED");
+  assert.equal(decision.cancellationState, "DECIDED_NOT_COMPLETED");
+  const completed = classifyNxtNews({ title: "자기주식 취득결과보고서 및 소각 완료" }, now);
+  assert.equal(completed.buybackState, "COMPLETED_OR_RESULT_REPORTED");
+  assert.equal(completed.cancellationState, "COMPLETED");
+  const tentative = classifyNxtNews({ title: "공급계약 협의 중" }, now);
+  assert.equal(tentative.contractState, "NOT_FINAL_MENTIONED");
+});
+
+test("public feed-shaped items retain exact amounts, facts, correction state and direct KIND link", () => {
+  const row = joinNxtNewsByTicker([{
+    title: "[코]유바이오로직스 단일판매ㆍ공급계약체결(자율공시)", ticker: "206650", company: "유바이오로직스",
+    url: "http://kind.krx.co.kr:80/common/disclsviewer.do?method=searchInitInfo&acptNo=20261026000136&docno=",
+    source: "kind.krx.co.kr/disclosure/rsstodaydistribute.do", published_at: "2026-10-26T01:42:00.000Z",
+    first_seen_at: "2026-10-26T02:09:59.439Z", amounts: ["원문 숫자 1"], facts: ["공시 제목 추출"],
+    is_disclosure: 1, status: "corrected", source_links: JSON.stringify([{ url: "https://kind.krx.co.kr/common/disclsviewer.do?acptNo=20261026000136", title: "KIND 원문" }])
+  }], "206650", { now })[0];
+  assert.equal(row.amounts[0], "원문 숫자 1");
+  assert.equal(row.facts[0], "공시 제목 추출");
+  assert.equal(row.disclosureUrl, row.url);
+  assert.equal(row.analysis.freshness, "TODAY");
+  assert.ok(row.analysis.risks.some((risk) => risk.code === "CORRECTION_OR_CANCELLATION_MENTIONED"));
+  assert.equal(row.sourceLinks.length, 2);
+});
+
+test("an identical article and disclosure are represented as one event with both source types and links", () => {
+  const items = joinNxtNewsByTicker([
+    { title: "유바이오로직스 공급계약 체결", ticker: "206650", company: "유바이오로직스", url: "https://news.example/report", published_at: "2026-10-26T01:42:00Z", is_disclosure: 0 },
+    { title: "유바이오로직스 공급계약 체결", ticker: "206650", company: "유바이오로직스", url: "https://kind.krx.co.kr/disclosure?id=1", published_at: "2026-10-26T02:00:00Z", is_disclosure: 1 }
+  ], "206650", { now });
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].recordTypes.sort(), ["DISCLOSURE", "NEWS"]);
+  assert.equal(items[0].isDisclosure, true);
+  assert.equal(items[0].sourceLinks.length, 2);
+  const detail = newsForTickerResponse({ status: "OK", serverTime: now.toISOString(), items: [
+    { title: "유바이오로직스 공급계약 체결", ticker: "206650", company: "유바이오로직스", url: "https://news.example/report", published_at: "2026-10-26T01:42:00Z", is_disclosure: 0 },
+    { title: "유바이오로직스 공급계약 체결", ticker: "206650", company: "유바이오로직스", url: "https://kind.krx.co.kr/disclosure?id=1", published_at: "2026-10-26T02:00:00Z", is_disclosure: 1 }
+  ] }, "206650", { now });
+  assert.equal(detail.newsCount, 1);
+  assert.equal(detail.disclosureCount, 1);
+});
+
+test("separate KIND receipt numbers are not collapsed just because disclosure titles repeat", () => {
+  const items = joinNxtNewsByTicker([
+    { title: "한화투자증권 증권발행실적보고서", ticker: "003530", company: "한화투자증권", url: "http://kind.krx.co.kr/common/disclsviewer.do?acptNo=20261026000175", published_at: "2026-10-26T02:01:00Z", is_disclosure: 1 },
+    { title: "한화투자증권 증권발행실적보고서", ticker: "003530", company: "한화투자증권", url: "http://kind.krx.co.kr/common/disclsviewer.do?acptNo=20261026000176", published_at: "2026-10-26T02:03:00Z", is_disclosure: 1 }
+  ], "003530", { now });
+  assert.equal(items.length, 2);
+  assert.deepEqual(items.map((item) => item.disclosureId).sort(), ["20261026000175", "20261026000176"]);
+});
+
+test("per-ticker detail response reports a stale public feed and labels a feed-name fallback", () => {
+  const response = newsForTickerResponse({ status: "OK", serverTime: "2026-10-25T00:00:00.000Z", latestRun: { finished_at: "2026-10-25T00:00:02.000Z" }, items: [
+    { title: "실적 발표", ticker: "005930", company: "삼성전자", published_at: "2026-10-25T23:20:00.000Z", first_seen_at: "2026-10-25T23:21:00.000Z", amounts: ["42억원"] }
+  ] }, "005930", { now });
+  assert.equal(response.company, "삼성전자");
+  assert.equal(response.companySource, "NEWS_FEED_TICKER_PAIR");
+  assert.equal(response.feedStatus, "STALE");
+  assert.equal(response.items[0].amounts[0], "42억원");
+  assert.equal(response.items[0].analysis.freshness, "TODAY");
+});
+
 test("integrated output only attaches cards for actual LIVE or DELAYED snapshot rows", () => {
   const snapshot = { schemaVersion: 1, market: "NXT", items: [
     { ticker: "005930", company: "삼성전자", rank: 1, status: "LIVE", price: 100, changePercent: 2 },
@@ -66,7 +130,7 @@ test("integrated output only attaches cards for actual LIVE or DELAYED snapshot 
   const feed = { status: "OK", items: [{ title: "자사주 매입", ticker: "005930", published_at: "2026-10-26T00:00:00Z", first_seen_at: "2026-10-26T00:01:00Z", is_disclosure: 1 }] };
   const result = createIntegratedNxtSnapshot(snapshot, feed, { now, universe: { items: [{ ticker: "005930", name: "삼성전자" }] } });
   assert.equal(result.top10.length, 1);
-  assert.equal(result.top10[0].newsCount, 1);
+  assert.equal(result.top10[0].newsCount, 0);
   assert.equal(result.top10[0].disclosureCount, 1);
   assert.equal(result.top10[0].catalystTypes[0], "BUYBACK");
   const noQuotes = createIntegratedNxtSnapshot({ ...snapshot, items: [] }, feed, { now });

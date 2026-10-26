@@ -53,6 +53,23 @@ function canonicalUrl(value) {
   } catch { return ""; }
 }
 
+function officialDisclosureLink(value) {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname === "kind.krx.co.kr" || hostname.endsWith(".kind.krx.co.kr")
+      || hostname === "dart.fss.or.kr" || hostname.endsWith(".dart.fss.or.kr");
+  } catch { return false; }
+}
+
+function disclosureReceiptId(item, primaryUrl) {
+  const explicit = String(item?.rcept_no ?? item?.receipt_no ?? item?.disclosure_id ?? "").trim();
+  if (explicit) return explicit;
+  try {
+    const url = new URL(primaryUrl);
+    return url.searchParams.get("acptNo") || url.searchParams.get("rcept_no") || url.searchParams.get("receiptNo") || null;
+  } catch { return null; }
+}
+
 function isDisclosure(item) {
   return item?.is_disclosure === true || item?.is_disclosure === 1 || item?.is_disclosure === "1";
 }
@@ -60,6 +77,34 @@ function isDisclosure(item) {
 function articleCodes(item) {
   const candidates = [item?.ticker, ...parseArray(item?.tickers), ...parseArray(item?.related_tickers), ...parseArray(item?.stock_codes)];
   return [...new Set(candidates.map(validNewsTicker).filter(Boolean))];
+}
+
+function sourceLinks(item, fallbackUrl, disclosureUrl = null) {
+  const fromField = parseArray(item?.source_links).map((entry) => {
+    if (typeof entry === "string") return { url: canonicalUrl(entry) };
+    if (!entry || typeof entry !== "object") return null;
+    const url = canonicalUrl(entry.url);
+    return url ? { ...entry, url } : null;
+  }).filter(Boolean);
+  const primary = [
+    ...(fallbackUrl ? [{ url: fallbackUrl, source: item?.source ?? null, title: item?.title ?? null, published_at: item?.published_at ?? null }] : []),
+    ...(disclosureUrl ? [{ url: disclosureUrl, source: "official disclosure", title: item?.title ?? null, published_at: item?.published_at ?? null }] : [])
+  ];
+  const seen = new Set();
+  return [...primary, ...fromField].filter((entry) => {
+    if (!entry.url || seen.has(entry.url)) return false;
+    seen.add(entry.url);
+    return true;
+  });
+}
+
+function sourceArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
 }
 
 export function classifyNxtNews(item, now = new Date()) {
@@ -76,8 +121,9 @@ export function classifyNxtNews(item, now = new Date()) {
     ["OVERSEAS_CATALYST", /해외시장|글로벌.{0,12}(?:투자|수주|진출)|미국.{0,12}(?:투자|수주|실적)/u],
     ["OTHER_CORPORATE_POSITIVE", /흑자전환|배당 확대|특별배당|설비 증설|생산능력 확대|신규 고객사|신사업 진출/u]
   ];
-  const matches = rules.filter(([, pattern]) => pattern.test(text)).map(([code]) => code);
-  const positive = matches.length > 0;
+  const matches = rules.map(([code, pattern]) => ({ code, evidence: text.match(pattern)?.[0] ?? null })).filter((match) => match.evidence);
+  const types = matches.map((match) => match.code);
+  const positive = types.length > 0;
   const publishedDate = kstDate(item?.published_at);
   const today = kstDate(now.toISOString());
   const yesterdayDate = today ? kstDate(new Date(Date.parse(`${today}T00:00:00+09:00`) - 86_400_000).toISOString()) : null;
@@ -88,23 +134,32 @@ export function classifyNxtNews(item, now = new Date()) {
     : publishedDate === today ? "TODAY"
       : publishedDate === yesterdayDate ? "PREVIOUS_DAY" : "HISTORICAL";
   const risks = [];
-  if (/정정|철회|취소|해지|해제/u.test(text)) risks.push({ code: "CORRECTION_OR_CANCELLATION_MENTIONED", verified: true });
+  if (/정정|철회|취소|해지|해제/u.test(text) || String(item?.status ?? "").toLowerCase() === "corrected") risks.push({ code: "CORRECTION_OR_CANCELLATION_MENTIONED", verified: true });
   if (/양해각서|MOU|의향서|LOI|협의|추진 중|검토 중/u.test(text)) risks.push({ code: "CONTRACT_NOT_FINAL_MENTIONED", verified: true });
   if (/유상증자|전환사채|신주인수권|BW|CB|희석/u.test(text)) risks.push({ code: "DILUTION_MENTIONED", verified: true });
   if (/일회성|일회적|자산 매각|충당금 환입/u.test(text)) risks.push({ code: "ONE_OFF_EARNINGS_MENTIONED", verified: true });
   if (/기대감|가능성|전망|관측|추정|업계에서는/u.test(text)) risks.push({ code: "SPECULATION_OR_EXPECTATION_MENTIONED", verified: true });
+  const buybackState = /취득결과보고서|취득 완료|매입 완료|매입을 마쳤/u.test(text) ? "COMPLETED_OR_RESULT_REPORTED"
+    : /취득 결정|매입 계획|매입하기로|취득하기로/u.test(text) ? "DECIDED_NOT_EXECUTED"
+      : /자사주|자기주식/u.test(text) ? "MENTIONED_STATUS_UNCLEAR" : "NOT_APPLICABLE";
+  const cancellationState = /소각 완료|소각했다|소각을 마쳤/u.test(text) ? "COMPLETED"
+    : /소각 결정|소각 계획|소각하기로/u.test(text) ? "DECIDED_NOT_COMPLETED"
+      : /소각/u.test(text) ? "MENTIONED_STATUS_UNCLEAR" : "NOT_APPLICABLE";
+  const contractState = /양해각서|\bMOU\b|의향서|\bLOI\b|협의|추진 중|검토 중/u.test(text) ? "NOT_FINAL_MENTIONED"
+    : /공급계약|계약 체결|수주/u.test(text) ? (isDisclosure(item) ? "OFFICIAL_FILING_TITLE_OR_TEXT_CONFIRMS_NOTICE" : "CONTRACT_WORDING_PRESENT_UNVERIFIED") : "NOT_APPLICABLE";
   risks.push({ code: "PREPRICING_NOT_CHECKED", verified: false, detail: "실제 가격·수급 자료와 대조하지 않아 선반영 여부는 확인되지 않았습니다." });
   const grade = ["S", "A", "B", "C"].includes(String(item?.grade ?? "").toUpperCase()) ? String(item.grade).toUpperCase() : "UNVERIFIED";
   const gradeBasis = item?.impact || parseArray(item?.facts).filter(Boolean).join("; ") || "저장된 중요도 근거가 없어 등급 의미를 추가 검증하지 않았습니다.";
   return {
-    positive, types: matches.length ? matches : ["UNCLASSIFIED"],
-    typeReasons: matches.map((code) => ({ code, evidence: item?.title ?? "" })),
+    positive, types: types.length ? types : ["UNCLASSIFIED"],
+    typeReasons: matches,
     grade, gradeBasis, freshness,
     publishedAt: item?.published_at ?? null,
     firstSeenAt: item?.first_seen_at ?? null,
     collectionDelayMs: delayMs,
     collectionDelayed: delayMs !== null && delayMs > 15 * 60_000,
-    risks
+    risks, buybackState, cancellationState, contractState,
+    impactAssessment: positive ? "긍정 관련 유형 확인 · 규모와 실제 영향은 별도 검증 필요" : "호재 분류 근거 부족 · 판단 보류"
   };
 }
 
@@ -112,8 +167,12 @@ function normalizeArticle(item, now) {
   if (!item || typeof item !== "object" || !String(item.title ?? "").trim()) return null;
   const primaryUrl = canonicalUrl(item.url);
   const disclosureUrl = canonicalUrl(item.disclosure_url ?? item.rcept_url ?? item.original_disclosure_url);
-  const links = [...new Set([primaryUrl, disclosureUrl, ...parseArray(item.source_links).map((entry) => typeof entry === "string" ? canonicalUrl(entry) : canonicalUrl(entry?.url))].filter(Boolean))];
+  const isOfficialDisclosure = isDisclosure(item);
+  const verifiedDisclosureUrl = disclosureUrl || (isOfficialDisclosure && officialDisclosureLink(primaryUrl) ? primaryUrl : null);
+  const links = [...new Set([primaryUrl, verifiedDisclosureUrl, ...sourceArray(item.source_links).map((entry) => typeof entry === "string" ? canonicalUrl(entry) : canonicalUrl(entry?.url))].filter(Boolean))];
   const url = primaryUrl || disclosureUrl || links[0] || null;
+  const amounts = sourceArray(item.amounts).map((value) => String(value).trim()).filter(Boolean);
+  const facts = sourceArray(item.facts).map((value) => String(value).trim()).filter(Boolean);
   return {
     id: String(item.id ?? ""),
     title: String(item.title).trim(),
@@ -122,16 +181,21 @@ function normalizeArticle(item, now) {
     company: String(item.company ?? "").trim() || null,
     companies: [...new Set([item.company, ...parseArray(item.companies)].map((name) => String(name ?? "").trim()).filter(Boolean))],
     url: url || null,
-    disclosureUrl: disclosureUrl || null,
-    sourceLinks: links,
+    disclosureUrl: verifiedDisclosureUrl || null,
+    sourceLinks: sourceLinks(item, url, verifiedDisclosureUrl),
     source: String(item.source ?? "").trim() || null,
-    isDisclosure: isDisclosure(item),
-    disclosureId: String(item.rcept_no ?? item.receipt_no ?? item.disclosure_id ?? "").trim() || null,
+    isDisclosure: isOfficialDisclosure,
+    recordTypes: [isOfficialDisclosure ? "DISCLOSURE" : "NEWS"],
+    disclosureId: disclosureReceiptId(item, primaryUrl),
+    amounts,
+    facts,
     publishedAt: item.published_at ?? null,
     firstSeenAt: item.first_seen_at ?? null,
     category: String(item.category ?? "기타"),
     summary: String(item.summary ?? item.content ?? "").trim(),
     grade: String(item.grade ?? "UNVERIFIED").toUpperCase(),
+    gradeVerification: item.grade ? "SOURCE_STORED_NOT_INDEPENDENTLY_VERIFIED" : "UNVERIFIED",
+    impact: String(item.impact ?? "").trim() || null,
     risksText: String(item.risks ?? "").trim(),
     status: String(item.status ?? "active"),
     duplicateCount: Number.isFinite(Number(item.duplicate_count)) ? Number(item.duplicate_count) : 1,
@@ -148,7 +212,9 @@ function dedupeArticles(items) {
     const keys = [
       item.isDisclosure && item.disclosureId ? `disclosure:${item.disclosureId}` : null,
       item.url ? `url:${item.url}` : null,
-      ...subjects.map((subject) => `title:${item.isDisclosure ? "d" : "n"}:${subject}:${date}:${normalizedTitle(item.title)}`)
+      ...subjects.map((subject) => item.isDisclosure && item.disclosureId
+        ? `identified-disclosure:${subject}:${item.disclosureId}`
+        : `event:${subject}:${date}:${normalizedTitle(item.title)}`)
     ].filter(Boolean);
     const previous = keys.map((key) => byIdentity.get(key)).find(Boolean);
     if (!previous) {
@@ -157,10 +223,13 @@ function dedupeArticles(items) {
       continue;
     }
     previous.duplicateSources += 1;
+    previous.recordTypes = [...new Set([...(previous.recordTypes ?? [previous.isDisclosure ? "DISCLOSURE" : "NEWS"]), ...(item.recordTypes ?? [item.isDisclosure ? "DISCLOSURE" : "NEWS"])])];
+    previous.isDisclosure = previous.recordTypes.includes("DISCLOSURE");
     previous.tickers = [...new Set([...previous.tickers, ...item.tickers])];
     previous.companies = [...new Set([...previous.companies, ...item.companies])];
-    previous.sourceLinks = [...new Set([...previous.sourceLinks, ...item.sourceLinks])];
+    previous.sourceLinks = [...new Map([...previous.sourceLinks, ...item.sourceLinks].map((link) => [link.url, link])).values()];
     previous.duplicateCount = Math.max(previous.duplicateCount, item.duplicateCount);
+    if (!previous.disclosureUrl && item.disclosureUrl) previous.disclosureUrl = item.disclosureUrl;
     if (!previous.publishedAt && item.publishedAt) previous.publishedAt = item.publishedAt;
     if (!previous.firstSeenAt && item.firstSeenAt) previous.firstSeenAt = item.firstSeenAt;
     for (const key of keys) byIdentity.set(key, previous);
@@ -200,12 +269,12 @@ export function createIntegratedNxtSnapshot(snapshot, feed, { universe = null, n
     .map((item) => {
       const ticker = validNewsTicker(item.ticker);
       const relatedNews = sourceValid ? joinNxtNewsByTicker(feed.items, ticker, { officialName: item.company || names.get(ticker), now }) : [];
-      const disclosures = relatedNews.filter((article) => article.isDisclosure);
+      const disclosures = relatedNews.filter((article) => article.recordTypes.includes("DISCLOSURE"));
       const publishedTimes = relatedNews.map((article) => Date.parse(article.publishedAt ?? "")).filter(Number.isFinite);
       const latestNewsAt = publishedTimes.length ? new Date(Math.max(...publishedTimes)).toISOString() : null;
       const lead = relatedNews.find((article) => article.analysis.positive) ?? null;
       return {
-        ...item, ticker, newsCount: relatedNews.length,
+        ...item, ticker, newsCount: relatedNews.filter((article) => article.recordTypes.includes("NEWS")).length,
         disclosureCount: disclosures.length,
         latestNewsAt,
         latestNewsFreshness: relatedNews[0]?.analysis.freshness ?? "NO_NEWS",
@@ -222,7 +291,7 @@ export function createIntegratedNxtSnapshot(snapshot, feed, { universe = null, n
     generatedAt: now.toISOString(),
     snapshot: { ...(snapshot ?? {}), items: cards },
     newsSource: {
-      status: !sourceValid ? "UNAVAILABLE" : sourceStale ? "STALE" : feed.items.length ? "OK" : "EMPTY",
+      status: !sourceValid ? "UNAVAILABLE" : sourceDelayMs === null ? "UNVERIFIED" : sourceStale ? "STALE" : feed.items.length ? "OK" : "EMPTY",
       itemCount: sourceValid ? feed.items.length : 0,
       generatedAt: feed?.serverTime ?? null,
       lastCollectionAt: feed?.latestRun?.finished_at ?? null,
@@ -268,15 +337,27 @@ export function createNxtNewsReader({ env = process.env, readFileImpl = fs.readF
 export function newsForTickerResponse(feed, ticker, { universe = null, now = new Date() } = {}) {
   const code = validNewsTicker(ticker);
   if (!code) return null;
-  const name = officialNamesByTicker(universe).get(code) ?? null;
-  const items = feed?.status === "OK" ? joinNxtNewsByTicker(feed.items, code, { officialName: name, now }) : [];
+  const officialName = officialNamesByTicker(universe).get(code) ?? null;
+  const items = feed?.status === "OK" ? joinNxtNewsByTicker(feed.items, code, { officialName, now }) : [];
+  const companyNames = [...new Set(items.map((item) => item.company).filter(Boolean))];
+  const name = officialName || (companyNames.length === 1 ? companyNames[0] : null);
+  const feedTimestamp = Date.parse(feed?.serverTime ?? "");
+  const feedAgeMs = Number.isFinite(feedTimestamp) ? Math.max(0, now.getTime() - feedTimestamp) : null;
+  const feedFreshness = feed?.status !== "OK" ? "UNAVAILABLE"
+    : feedAgeMs === null ? "UNVERIFIED"
+      : feedAgeMs > 65 * 60_000 ? "STALE" : "OK";
   return {
     schemaVersion: 1,
     ticker: code,
     company: name,
+    companySource: officialName ? "VERIFIED_UNIVERSE" : name ? "NEWS_FEED_TICKER_PAIR" : "UNVERIFIED",
     status: feed?.status === "OK" ? (items.length ? "OK" : "EMPTY") : "UNAVAILABLE",
-    newsCount: items.length,
-    disclosureCount: items.filter((item) => item.isDisclosure).length,
+    feedStatus: feedFreshness,
+    feedAgeMs,
+    feedServerTime: feed?.serverTime ?? null,
+    feedLatestRunAt: feed?.latestRun?.finished_at ?? null,
+    newsCount: items.filter((item) => item.recordTypes.includes("NEWS")).length,
+    disclosureCount: items.filter((item) => item.recordTypes.includes("DISCLOSURE")).length,
     latestNewsAt: items.map((item) => Date.parse(item.publishedAt ?? "")).filter(Number.isFinite).sort((a, b) => b - a)[0] ? new Date(Math.max(...items.map((item) => Date.parse(item.publishedAt ?? "")).filter(Number.isFinite))).toISOString() : null,
     items
   };
