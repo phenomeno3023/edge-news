@@ -58,6 +58,24 @@ test("catalyst classification separates buyback from cancellation and does not u
   assert.ok(result.risks.some((risk) => risk.code === "PREPRICING_NOT_CHECKED" && !risk.verified));
 });
 
+test("reported year-over-year operating-profit growth is classified without calling it an earnings surprise", () => {
+  const result = classifyNxtNews({ title: "우리금융지주, 3분기 영업익 1조4189억원…전년比 43.62% 증가" }, now);
+  assert.ok(result.types.includes("EARNINGS_GROWTH_REPORTED"));
+  assert.ok(!result.types.includes("EARNINGS_SURPRISE"));
+  const dilution = classifyNxtNews({ title: "최대주주 변경 3자배정 유증 결정" }, now);
+  assert.ok(dilution.risks.some((risk) => risk.code === "DILUTION_MENTIONED"));
+});
+
+test("published-to-first-seen delay is exposed in minutes for the late 08:14 article", () => {
+  const result = classifyNxtNews({
+    title: "실적 전망 기사",
+    published_at: "2026-10-25T23:14:23.000Z",
+    first_seen_at: "2026-10-26T02:09:59.723Z"
+  }, now);
+  assert.equal(Math.round(result.collectionDelayMs / 60_000), 176);
+  assert.equal(result.collectionDelayed, true);
+});
+
 test("detailed analysis distinguishes a buyback decision from completed execution and cancellation", () => {
   const decision = classifyNxtNews({ title: "자사주 매입 계획 및 소각 결정", amounts: ["7800억원"] }, now);
   assert.equal(decision.buybackState, "DECIDED_NOT_EXECUTED");
