@@ -64,6 +64,8 @@ test("reported year-over-year operating-profit growth is classified without call
   assert.ok(!result.types.includes("EARNINGS_SURPRISE"));
   const dilution = classifyNxtNews({ title: "최대주주 변경 3자배정 유증 결정" }, now);
   assert.ok(dilution.risks.some((risk) => risk.code === "DILUTION_MENTIONED"));
+  const downgrade = classifyNxtNews({ title: "실리콘투, 3분기 실적 기대치 밑돌 전망…목표가↓" }, now);
+  assert.ok(downgrade.risks.some((risk) => risk.code === "NEGATIVE_EARNINGS_OR_GUIDANCE_MENTIONED"));
 });
 
 test("published-to-first-seen delay is exposed in minutes for the late 08:14 article", () => {

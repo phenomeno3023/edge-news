@@ -136,6 +136,7 @@ export function classifyNxtNews(item, now = new Date()) {
       : publishedDate === yesterdayDate ? "PREVIOUS_DAY" : "HISTORICAL";
   const risks = [];
   if (/정정|철회|취소|해지|해제/u.test(text) || String(item?.status ?? "").toLowerCase() === "corrected") risks.push({ code: "CORRECTION_OR_CANCELLATION_MENTIONED", verified: true });
+  if (/기대치.{0,8}(?:밑돌|하회)|(?:예상|컨센서스).{0,10}(?:하회|밑돌)|전망.{0,10}하향|목표가\s*↓/u.test(text)) risks.push({ code: "NEGATIVE_EARNINGS_OR_GUIDANCE_MENTIONED", verified: true });
   if (/양해각서|MOU|의향서|LOI|협의|추진 중|검토 중/u.test(text)) risks.push({ code: "CONTRACT_NOT_FINAL_MENTIONED", verified: true });
   if (/유상증자|전환사채|신주인수권|BW|CB|희석|3자배정/u.test(text)) risks.push({ code: "DILUTION_MENTIONED", verified: true });
   if (/일회성|일회적|자산 매각|충당금 환입/u.test(text)) risks.push({ code: "ONE_OFF_EARNINGS_MENTIONED", verified: true });
