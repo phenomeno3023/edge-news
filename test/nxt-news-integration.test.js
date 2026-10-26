@@ -1,0 +1,101 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  classifyNxtNews, createIntegratedNxtSnapshot, createNxtNewsReader,
+  joinNxtNewsByTicker, newsForTickerResponse, validNewsTicker
+} from "../src/nxt/news-integration.js";
+
+const now = new Date("2026-10-26T08:30:00+09:00");
+
+test("news matching prefers valid six-digit tickers and only uses exact official company names as fallback", () => {
+  const rows = [
+    { title: "삼성전자 호재", ticker: "005930", company: "삼성전자", url: "https://news.example/a" },
+    { title: "삼성전자 협력사 소식", ticker: "000001", company: "삼성전자", url: "https://news.example/b" },
+    { title: "회사명 누락 공시", company: "삼성전자", is_disclosure: 1, url: "https://news.example/c" },
+    { title: "삼성전자 부품사 이야기", company: "삼성전자부품", url: "https://news.example/d" }
+  ];
+  assert.equal(validNewsTicker("005930"), "005930");
+  assert.equal(validNewsTicker("5930"), null);
+  const joined = joinNxtNewsByTicker(rows, "005930", { officialName: "삼성전자", now });
+  assert.deepEqual(joined.map((item) => item.title).sort(), ["삼성전자 호재", "회사명 누락 공시"]);
+  assert.deepEqual(joinNxtNewsByTicker(rows, "5930", { officialName: "삼성전자", now }), []);
+});
+
+test("multi-company article codes connect to each ticker; same story and disclosure duplicates merge links", () => {
+  const rows = [
+    { title: "공동 공급계약 체결", tickers: ["005930", "000660"], url: "https://source.example/a?utm_source=x", published_at: "2026-10-26T00:00:00Z" },
+    { title: "공동 공급계약 체결", ticker: "000660", url: "https://other.example/a", published_at: "2026-10-26T00:00:00Z" },
+    { title: "자기주식 취득 공시", ticker: "005930", is_disclosure: 1, rcept_no: "202610260001", url: "https://dart.example/one", disclosure_url: "https://dart.example/original" },
+    { title: "자기주식 취득 공시", ticker: "005930", is_disclosure: true, rcept_no: "202610260001", url: "https://kind.example/two", disclosure_url: "https://dart.example/original" }
+  ];
+  const samsung = joinNxtNewsByTicker(rows, "005930", { now });
+  const hynix = joinNxtNewsByTicker(rows, "000660", { now });
+  assert.equal(samsung.length, 2);
+  assert.equal(hynix.length, 1);
+  assert.equal(samsung.filter((item) => item.isDisclosure).length, 1);
+  assert.equal(samsung.find((item) => item.isDisclosure).sourceLinks.length, 3);
+  assert.equal(samsung.find((item) => item.isDisclosure).disclosureUrl, "https://dart.example/original");
+});
+
+test("freshness uses publication time in KST and keeps first collection time distinct", () => {
+  const current = classifyNxtNews({ title: "08:20 게시 계약 소식", published_at: "2026-10-25T23:20:00Z", first_seen_at: "2026-10-25T23:21:00Z" }, now);
+  const previous = classifyNxtNews({ title: "전일 보도", published_at: "2026-10-24T14:00:00Z", first_seen_at: "2026-10-26T00:20:00Z" }, now);
+  const missing = classifyNxtNews({ title: "시각 누락" }, now);
+  assert.equal(current.freshness, "TODAY");
+  assert.equal(current.publishedAt, "2026-10-25T23:20:00Z");
+  assert.equal(current.firstSeenAt, "2026-10-25T23:21:00Z");
+  assert.equal(current.collectionDelayed, false);
+  assert.equal(previous.freshness, "HISTORICAL");
+  assert.equal(missing.freshness, "PUBLISHED_AT_UNKNOWN");
+});
+
+test("catalyst classification separates buyback from cancellation and does not upgrade stored grade", () => {
+  const result = classifyNxtNews({ title: "자사주 매입 및 소각 계획", grade: "C", impact: "저장된 분류 근거" }, now);
+  assert.ok(result.types.includes("BUYBACK"));
+  assert.ok(result.types.includes("TREASURY_CANCEL"));
+  assert.equal(result.grade, "C");
+  assert.equal(result.gradeBasis, "저장된 분류 근거");
+  assert.ok(result.risks.some((risk) => risk.code === "PREPRICING_NOT_CHECKED" && !risk.verified));
+});
+
+test("integrated output only attaches cards for actual LIVE or DELAYED snapshot rows", () => {
+  const snapshot = { schemaVersion: 1, market: "NXT", items: [
+    { ticker: "005930", company: "삼성전자", rank: 1, status: "LIVE", price: 100, changePercent: 2 },
+    { ticker: "000660", company: "SK하이닉스", status: "UNVERIFIED", price: null, changePercent: null }
+  ] };
+  const feed = { status: "OK", items: [{ title: "자사주 매입", ticker: "005930", published_at: "2026-10-26T00:00:00Z", first_seen_at: "2026-10-26T00:01:00Z", is_disclosure: 1 }] };
+  const result = createIntegratedNxtSnapshot(snapshot, feed, { now, universe: { items: [{ ticker: "005930", name: "삼성전자" }] } });
+  assert.equal(result.top10.length, 1);
+  assert.equal(result.top10[0].newsCount, 1);
+  assert.equal(result.top10[0].disclosureCount, 1);
+  assert.equal(result.top10[0].catalystTypes[0], "BUYBACK");
+  const noQuotes = createIntegratedNxtSnapshot({ ...snapshot, items: [] }, feed, { now });
+  assert.deepEqual(noQuotes.top10, []);
+});
+
+test("news reader distinguishes empty valid feeds from missing or malformed sources", async () => {
+  const missing = createNxtNewsReader({ env: { EDGE_NXT_NEWS_URL: "", EDGE_NXT_NEWS_PATH: "/no/such/file.json" } });
+  assert.equal((await missing.read()).reason, "NEWS_JSON_NOT_FOUND");
+  const malformed = createNxtNewsReader({ env: { EDGE_NXT_NEWS_URL: "", EDGE_NXT_NEWS_PATH: "/fixture" }, readFileImpl: async () => "{}" });
+  assert.equal((await malformed.read()).reason, "NEWS_JSON_INVALID");
+  const empty = createNxtNewsReader({ env: { EDGE_NXT_NEWS_URL: "" }, readFileImpl: async () => JSON.stringify({ items: [], serverTime: "2026-10-26T00:00:00Z" }) });
+  assert.equal((await empty.read()).status, "OK");
+  assert.equal(newsForTickerResponse({ status: "OK", items: [] }, "005930", { now }).status, "EMPTY");
+  assert.equal(newsForTickerResponse({ status: "UNAVAILABLE", items: [] }, "005930", { now }).status, "UNAVAILABLE");
+  assert.equal(newsForTickerResponse({ status: "OK", items: [] }, "5930", { now }), null);
+});
+
+test("news source uses public read-only JSON by GET and marks an old source snapshot stale", async () => {
+  let requestedUrl = "";
+  const reader = createNxtNewsReader({ env: { EDGE_NXT_NEWS_URL: "https://news.example/data/news.json" }, fetchImpl: async (url, options) => {
+    requestedUrl = url;
+    assert.equal(options.method, undefined);
+    return new Response(JSON.stringify({ items: [], serverTime: "2026-10-25T06:00:00Z", latestRun: { finished_at: "2026-10-25T06:00:00Z" } }), { status: 200 });
+  }, readFileImpl: async () => { throw new Error("must not write or read a database"); } });
+  const feed = await reader.read();
+  assert.equal(requestedUrl, "https://news.example/data/news.json");
+  assert.equal(feed.status, "OK");
+  const integrated = createIntegratedNxtSnapshot({ schemaVersion: 1, market: "NXT", items: [] }, feed, { now });
+  assert.equal(integrated.newsSource.status, "STALE");
+  assert.equal(integrated.newsSource.itemCount, 0);
+});

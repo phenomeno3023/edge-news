@@ -246,6 +246,37 @@ test("standalone status and snapshot endpoints work without connecting to KIS", 
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test("read-only integrated news API preserves top10 compatibility and rejects malformed ticker codes", async () => {
+  const dir = tempDir();
+  const currentAt = new Date().toISOString();
+  const newsReader = { read: async () => ({ status: "OK", serverTime: currentAt, latestRun: { finished_at: currentAt }, items: [
+    { title: "삼성전자 자사주 매입", ticker: "005930", company: "삼성전자", is_disclosure: 1, published_at: "2026-10-26T00:18:00Z", first_seen_at: "2026-10-26T00:19:00Z", url: "https://example.test/story" }
+  ] }) };
+  const app = await createNxtApp({ env: { EDGE_NXT_DB_PATH: path.join(dir, "nxt.sqlite"), EDGE_NXT_UNIVERSE_PATH: path.join(dir, "missing-universe.json") }, newsReader, fetchImpl: async () => { throw new Error("network must not run"); } });
+  const server = http.createServer(app).listen(0, "127.0.0.1");
+  await new Promise((resolve) => server.once("listening", resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const [legacyResponse, integratedResponse, tickerResponse, invalidResponse] = await Promise.all([
+    fetch(`${base}/api/nxt/top10`), fetch(`${base}/api/nxt/integrated`),
+    fetch(`${base}/api/nxt/news/005930`), fetch(`${base}/api/nxt/news/5930`)
+  ]);
+  const legacy = await legacyResponse.json(); const integrated = await integratedResponse.json(); const byTicker = await tickerResponse.json();
+  assert.equal(legacyResponse.status, 200);
+  assert.equal(legacy.schemaVersion, 1);
+  assert.deepEqual(legacy.items, []);
+  assert.equal(integratedResponse.status, 200);
+  assert.deepEqual(integrated.top10, []);
+  assert.equal(integrated.newsSource.status, "OK");
+  assert.equal(byTicker.status, "OK");
+  assert.equal(byTicker.newsCount, 1);
+  assert.equal(byTicker.disclosureCount, 1);
+  assert.equal(invalidResponse.status, 400);
+  assert.equal((await invalidResponse.json()).error, "INVALID_TICKER");
+  await new Promise((resolve) => server.close(resolve));
+  app.locals.nxtRuntime.close();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test("NXT SQLite store persists market data in the dedicated database file", () => {
   const dir = tempDir(); const dbPath = path.join(dir, "edge-nxt-market.sqlite");
   const store = openNxtStore(dbPath);
