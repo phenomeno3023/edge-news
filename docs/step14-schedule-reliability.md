@@ -23,7 +23,8 @@ The workflow summary records schedule decision, actual workflow start, cron expr
 
 First inspect the Actions run summary and the persisted run row. A manual re-run of the same current KST window:
 1. skips if collection, JSON, and deployment all succeeded;
-2. skips an active concurrent run less than 30 minutes old;
+2. skips any database row still marked `running`; it is never unlocked based on elapsed time alone;
 3. retries if collection was partial/failed or JSON/deployment did not complete.
 
 No automatic catch-up workflow is activated by this change. Scheduled events after the weekday 20:00 boundary are skipped under the existing policy; the existing explicit manual-dispatch path remains available and uses idempotency protection.
+

@@ -87,8 +87,13 @@ export function decideSchedule({
   const minute = Number(p.minute);
   const original = parseOriginalSlot(scheduledAt, actual);
   const key = kstWindowKey(calendar, hour, minute);
+  const slotKey = original.originalSlotKnown
+    ? `slot:${original.scheduledFor}`
+    : cron === CRONS.tenMinute && hour >= 9 && hour < 20
+      ? `window:${calendar.date}:morning-recovery:${String(hour).padStart(2, "0")}:${String(Math.floor(minute / 10) * 10).padStart(2, "0")}`
+      : key;
   const exact = { ...original };
-  const permit = (cadence, reason, dedupeKey = key) => ({
+  const permit = (cadence, reason, dedupeKey = slotKey) => ({
     ...base, ...exact, run: true, cadence, reason,
     dedupeKey: dedupeKey || (runId ? `run:${runId}:${runAttempt || 1}` : null)
   });
@@ -154,3 +159,4 @@ export function decideSchedule({
 }
 
 export const SCHEDULE_CRONS = CRONS;
+

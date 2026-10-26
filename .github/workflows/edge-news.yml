@@ -35,6 +35,7 @@ permissions:
 concurrency:
   group: edge-news-collection
   cancel-in-progress: false
+  queue: max
 
 jobs:
   collect-and-publish:
@@ -135,6 +136,25 @@ jobs:
         id: export
         if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         run: node src/export.js
+      - name: Checkpoint and validate SQLite before persistence
+        id: sqlite-check
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        run: |
+          node --input-type=module -e '
+            import { DatabaseSync } from "node:sqlite";
+            const db = new DatabaseSync("data/edge-news.sqlite");
+            const checkpoint = db.prepare("PRAGMA wal_checkpoint(TRUNCATE)").get();
+            const integrity = db.prepare("PRAGMA integrity_check").get();
+            const counts = {
+              articles: db.prepare("SELECT COUNT(*) AS n FROM articles").get().n,
+              runs: db.prepare("SELECT COUNT(*) AS n FROM runs").get().n,
+              reports: db.prepare("SELECT COUNT(*) AS n FROM reports").get().n
+            };
+            db.close();
+            const result = {checkpoint, integrity: Object.values(integrity)[0], counts};
+            console.log(JSON.stringify(result));
+            if (result.integrity !== "ok" || Number(checkpoint.busy) !== 0) process.exit(1);
+          '
       - name: Prepare static snapshot and compact state branch
         id: persist
         if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
@@ -211,3 +231,4 @@ jobs:
             echo "- Actual workflow start (UTC): $EDGE_ACTIONS_STARTED_AT"
             echo "- Cron expression: ${EDGE_ACTIONS_SCHEDULE:-none}"
           } >> "$GITHUB_STEP_SUMMARY"
+

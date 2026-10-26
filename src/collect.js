@@ -5,7 +5,7 @@ import path from 'node:path';
 import {load as loadHtml} from 'cheerio';
 import iconv from 'iconv-lite';
 import {db} from './store.js';
-import {duplicateRunReason} from './collection-guard.js';
+import {duplicateRunReason,parseSlotDelayMs} from './collection-guard.js';
 import {analyze,stableId,normalizeTitle} from './analyze.js';
 import {matchSymbol} from './symbol-match.js';
 import {getNewsCoverageWindow,isWithinNewsCoverage} from './news-window.js';
@@ -43,7 +43,7 @@ const cronExpression=process.env.EDGE_ACTIONS_CRON||process.env.EDGE_ACTIONS_SCH
 const decisionAt=process.env.EDGE_ACTIONS_DECISION_AT||workflowStartedAt||actualStartedAt;
 const decisionReason=process.env.EDGE_ACTIONS_DECISION_REASON||'not_recorded';
 const scheduledSlotKnown=process.env.EDGE_ACTIONS_ORIGINAL_SLOT_KNOWN==='true';
-const slotDelayMs=Number.isFinite(Number(process.env.EDGE_ACTIONS_SLOT_DELAY_MS))?Number(process.env.EDGE_ACTIONS_SLOT_DELAY_MS):null;
+const slotDelayMs=parseSlotDelayMs(process.env.EDGE_ACTIONS_SLOT_DELAY_MS);
 const dedupeKey=process.env.EDGE_ACTIONS_DEDUPE_KEY||null;
 if(dedupeKey){
  const prior=db.prepare("SELECT id,status,finished_at,started_at,json_status,deployment_status FROM runs WHERE dedupe_key=? ORDER BY id DESC LIMIT 1").get(dedupeKey);
@@ -119,3 +119,4 @@ const runLog={run,eventType:triggerType,cronExpression,scheduledFor,originalSlot
 console.log(JSON.stringify(runLog));
 if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Collection execution\n\n- Run: ${run}\n- Event: ${triggerType}\n- Cron: ${cronExpression||'none'}\n- Scheduled slot: ${scheduledFor||'unknown'}\n- Original slot known: ${scheduledSlotKnown}\n- Collection: ${collectionStartedAt} → ${finished}\n- Status: ${runStatus}\n- Added/updated: ${added}/${updated}\n- Error code: ${errorCode||'none'}\n`);
 db.exec("DELETE FROM articles WHERE first_seen_at < datetime('now','-120 days'); DELETE FROM runs WHERE started_at < datetime('now','-180 days'); DELETE FROM reports WHERE trade_date < date('now','-180 days'); PRAGMA wal_checkpoint(TRUNCATE)");
+

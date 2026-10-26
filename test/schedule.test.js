@@ -27,7 +27,7 @@ test("08:20 event delayed to 10:05 is safely recovered in current trading window
   assert.equal(d.run, true);
   assert.equal(d.cadence, "delayed-recovery");
   assert.equal(d.scheduledFor, null);
-  assert.match(d.dedupeKey, /trading:10:00$/);
+  assert.match(d.dedupeKey, /morning-recovery:10:00$/);
 });
 
 test("explicit original slot is retained but late recovery is not retroactive", () => {
@@ -42,10 +42,19 @@ test("explicit original slot is retained but late recovery is not retroactive", 
   assert.match(d.reason, /not retroactive success/);
 });
 
-test("same current slot yields the same idempotency key for duplicate events", () => {
+test("delayed morning recovery and normal thirty-minute slots do not collide", () => {
   const delayed = decideSchedule({ now: "2026-10-26T01:05:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal });
   const scheduled = decideSchedule({ now: "2026-10-26T01:12:00Z", cron: SCHEDULE_CRONS.thirtyMinute, ...cal });
-  assert.equal(delayed.dedupeKey, scheduled.dedupeKey);
+  assert.notEqual(delayed.dedupeKey, scheduled.dedupeKey);
+});
+
+test("same delayed morning recovery bucket is idempotent and explicit distinct slots stay distinct", () => {
+  const a = decideSchedule({ now: "2026-10-26T01:05:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal });
+  const b = decideSchedule({ now: "2026-10-26T01:08:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal });
+  assert.equal(a.dedupeKey, b.dedupeKey);
+  const slotA = decideSchedule({ now: "2026-10-26T01:08:00Z", cron: SCHEDULE_CRONS.tenMinute, scheduledAt: "2026-10-25T23:20:00Z", ...cal });
+  const slotB = decideSchedule({ now: "2026-10-26T01:08:00Z", cron: SCHEDULE_CRONS.tenMinute, scheduledAt: "2026-10-25T23:30:00Z", ...cal });
+  assert.notEqual(slotA.dedupeKey, slotB.dedupeKey);
 });
 
 test("weekday thirty-minute and final 20:00 schedule retain their policies", () => {
@@ -95,3 +104,4 @@ test("unsupported events and cron expressions are safely skipped", () => {
   assert.equal(decideSchedule({ event: "repository_dispatch" }).run, false);
   assert.equal(decideSchedule({ now: "2026-10-26T01:05:00Z", cron: "5 * * * *", ...cal }).run, false);
 });
+
