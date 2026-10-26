@@ -59,14 +59,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Record actual workflow start
+        shell: bash
+        run: echo "EDGE_ACTIONS_STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
       - name: Install dependencies
         run: npm ci
       - name: Verify schedule and retention tests
         run: npm test
-      - name: Record actual workflow start
-        shell: bash
-        run: echo "EDGE_ACTIONS_STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
-      - name: Check KRX trading day
+      - name: Decide collection window
         id: calendar
         run: node src/should-run.js
       - name: Restore compact collection state
@@ -128,12 +128,15 @@ jobs:
         if: steps.calendar.outputs.run == 'true' && endsWith(steps.calendar.outputs.scheduled_for, 'T23:50:00.000Z')
         run: echo 'EDGE_FINAL_REPORT=true' >> "$GITHUB_ENV"
       - name: Collect public feeds and disclosures
+        id: collect
         if: steps.calendar.outputs.run == 'true'
         run: node src/collect.js
       - name: Export mobile news snapshot
+        id: export
         if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         run: node src/export.js
       - name: Prepare static snapshot and compact state branch
+        id: persist
         if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         shell: bash
         run: |
@@ -167,3 +170,44 @@ jobs:
         id: deployment
         if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         uses: actions/deploy-pages@v4
+      - name: Persist deployment outcome
+        id: persist-deployment
+        if: always() && steps.persist.outcome == 'success' && steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        env:
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+        shell: bash
+        run: |
+          node --input-type=module -e '
+            import { DatabaseSync } from "node:sqlite";
+            const db = new DatabaseSync("state/edge-news.sqlite");
+            const now = new Date().toISOString();
+            db.prepare("UPDATE runs SET deployment_status=?, deployment_finished_at=? WHERE id=(SELECT MAX(id) FROM runs)").run(process.env.DEPLOY_OUTCOME === "success" ? "success" : process.env.DEPLOY_OUTCOME || "unknown", now);
+            db.close();
+          '
+          git add state/edge-news.sqlite
+          git commit -m 'Record EDGE NEWS deployment outcome'
+          git push origin HEAD:edge-news-state
+      - name: Record workflow outcomes
+        if: always()
+        env:
+          CALENDAR_OUTCOME: ${{ steps.calendar.outcome }}
+          RESTORE_OUTCOME: ${{ steps.restore.outcome }}
+          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+          EXPORT_OUTCOME: ${{ steps.export.outcome }}
+          STATE_OUTCOME: ${{ steps.persist.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+          DEPLOY_STATE_OUTCOME: ${{ steps.persist-deployment.outcome }}
+        shell: bash
+        run: |
+          {
+            echo '### Workflow stage outcomes'
+            echo "- Schedule decision step: $CALENDAR_OUTCOME"
+            echo "- State restore: $RESTORE_OUTCOME"
+            echo "- Collection: $COLLECT_OUTCOME"
+            echo "- JSON generation: $EXPORT_OUTCOME"
+            echo "- State persistence: $STATE_OUTCOME"
+            echo "- Pages deployment: $DEPLOY_OUTCOME"
+            echo "- Deployment status persistence: $DEPLOY_STATE_OUTCOME"
+            echo "- Actual workflow start (UTC): $EDGE_ACTIONS_STARTED_AT"
+            echo "- Cron expression: ${EDGE_ACTIONS_SCHEDULE:-none}"
+          } >> "$GITHUB_STEP_SUMMARY"
