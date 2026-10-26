@@ -48,9 +48,9 @@
       const listed = [item?.ticker, ...(Array.isArray(item?.tickers) ? item.tickers : []), ...(Array.isArray(item?.related_tickers) ? item.related_tickers : [])]
         .map((value) => String(value ?? "").trim()).filter(validTicker);
       if (listed.length) return listed.includes(ticker);
-      const officialName = String(item?.company || "").normalize("NFKC").toLocaleLowerCase("ko-KR").replace(/[\s\p{P}\p{S}]/gu, "");
-      const cardName = String(officialName || "").normalize("NFKC").toLocaleLowerCase("ko-KR").replace(/[\s\p{P}\p{S}]/gu, "");
-      return Boolean(officialName && cardName && officialName === cardName);
+      const articleCompany = String(item?.company || "").normalize("NFKC").toLocaleLowerCase("ko-KR").replace(/[\s\p{P}\p{S}]/gu, "");
+      const officialCompany = String(officialName || "").normalize("NFKC").toLocaleLowerCase("ko-KR").replace(/[\s\p{P}\p{S}]/gu, "");
+      return Boolean(articleCompany && officialCompany && articleCompany === officialCompany);
     });
   }
 
