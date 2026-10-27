@@ -85,6 +85,7 @@ jobs:
           if [ "$branch_check" -eq 2 ]; then
             echo "No prior edge-news-state branch; importing the committed public news snapshot."
             node scripts/import-snapshot.js
+            echo "EDGE_STATE_EXPECTED_SHA=" >> "$GITHUB_ENV"
             echo "EDGE_RESTORE_STATUS=first_run_snapshot_seeded" >> "$GITHUB_ENV"
             echo "status=first_run_snapshot_seeded" >> "$GITHUB_OUTPUT"
             {
@@ -103,6 +104,7 @@ jobs:
             echo "EDGE_RESTORE_STATUS=failed" >> "$GITHUB_ENV"
             exit 1
           fi
+          echo "EDGE_STATE_EXPECTED_SHA=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
           mkdir -p data
           if ! git show FETCH_HEAD:state/edge-news.sqlite > "$RUNNER_TEMP/edge-news.sqlite"; then
             echo "::error::State branch exists but its SQLite database is missing or unreadable. Collection stopped; remote state was not changed."
@@ -176,8 +178,8 @@ jobs:
           if [ -f "$RUNNER_TEMP/edge-news-state/krx_symbols.json" ]; then cp "$RUNNER_TEMP/edge-news-state/krx_symbols.json" state/krx_symbols.json; fi
           git add state
           git commit -m 'Update compact EDGE NEWS state'
-          if ! git push --force origin HEAD:edge-news-state; then
-            echo "::error::News collection completed but state persistence failed. The prior remote state remains intact; Pages publication was stopped to avoid publishing an unpersisted run."
+          if ! git push --force-with-lease="refs/heads/edge-news-state:${EDGE_STATE_EXPECTED_SHA}" origin HEAD:edge-news-state; then
+            echo "::error::News collection completed but state persistence failed or the state branch changed concurrently. The prior remote state was not overwritten; Pages publication was stopped."
             echo "### State persistence: failed" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
