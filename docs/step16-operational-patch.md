@@ -11,6 +11,7 @@
 - `push`는 뉴스 수집이나 SQLite 복원·저장을 하지 않고 커밋된 정적 웹 파일만 Pages에 배포합니다. 따라서 기존의 코드 push에 따른 즉시 수집 동작은 제거됩니다.
 - 모든 workflow 실행은 main ref에서만 실행됩니다. 개발/준비 브랜치의 수동 실행은 운영 Pages로 배포하지 않습니다.
 - 동일 workflow의 예약·push·수동 실행은 하나의 concurrency group에서 직렬화됩니다. SQLite는 runner 로컬 상태이며 분산 잠금이 아닙니다.
+- compact 상태 커밋은 fetch 당시 원격 SHA를 `--force-with-lease`로 확인해 기록합니다. 최초 브랜치 생성은 예상 원격 SHA가 없을 때만 허용하며, 동시 writer가 먼저 갱신하면 저장과 Pages 배포를 실패시켜 데이터 덮어쓰기를 막습니다. 배포 결과 추가 기록은 fast-forward push만 허용합니다.
 
 ## 상태 저장 및 실패 복구
 
@@ -28,7 +29,7 @@
 
 1. 운영 DB 상태 브랜치의 파일을 읽기 전용으로 내려받아 별도 백업하고, 파일 SHA-256, 행 수, `PRAGMA integrity_check`를 기록합니다. 운영 브랜치에 기록하지 않습니다.
 2. 백업 복사본에만 이 브랜치의 초기화/마이그레이션을 적용하고 기존 행, URL unique 제약, WAL checkpoint와 구버전 삽입 호환성을 확인합니다.
-3. main에 적용할 변경을 아래 후보 파일로 제한하고, 정확한 diff 및 `push` 동작 변경을 승인받습니다.
+3. main에 적용할 최소 런타임 파일은 `.github/workflows/edge-news.yml`, `src/schedule.js`, `src/should-run.js`, `src/collect.js`, `src/collection-guard.js`, `src/store.js`, `src/export.js`입니다. `src/schedule-audit.js`, `test/step16-*.test.js`, `test/workflow-safety.test.js`, 이 문서는 검증 자료이며 운영 런타임에 포함할 필요가 없습니다. 정확한 diff와 `push` 동작 변경을 승인받습니다.
 4. 배포 후 첫 실행에서 restore → collect → JSON → state save → Pages 결과를 확인합니다.
 5. 08:00, 08:10, 08:20, 08:30, 08:40, 08:50 각각에 대해 실제 scheduled event와 실제 시작 시각, 수집·JSON·배포 결과를 별도로 대조합니다. 미도래 슬롯과 이벤트 미도착은 PASS가 아닙니다.
 
