@@ -11,10 +11,12 @@ on:
       - src/news-window.js
       - src/collect.js
       - src/symbol-match.js
+      - scripts/stage-published-data.js
       - test/pwa.test.js
       - test/schedule.test.js
       - test/news-window.test.js
       - test/symbol-match.test.js
+      - test/step17-published-data.test.js
       - .github/workflows/edge-news.yml
   schedule:
     # KST 08:00-08:50 every day (UTC 23:00-23:50 every day).
@@ -35,9 +37,12 @@ permissions:
 concurrency:
   group: edge-news-collection
   cancel-in-progress: false
+  queue: max
 
 jobs:
   collect-and-publish:
+    # A manual dispatch from a preparation branch must never deploy production Pages.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -59,14 +64,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Record actual workflow start
+        shell: bash
+        run: echo "EDGE_ACTIONS_STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
       - name: Install dependencies
         run: npm ci
       - name: Verify schedule and retention tests
         run: npm test
-      - name: Record actual workflow start
-        shell: bash
-        run: echo "EDGE_ACTIONS_STARTED_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
-      - name: Check KRX trading day
+      - name: Decide collection window
         id: calendar
         run: node src/should-run.js
       - name: Restore compact collection state
@@ -82,6 +87,7 @@ jobs:
           if [ "$branch_check" -eq 2 ]; then
             echo "No prior edge-news-state branch; importing the committed public news snapshot."
             node scripts/import-snapshot.js
+            echo "EDGE_STATE_EXPECTED_SHA=" >> "$GITHUB_ENV"
             echo "EDGE_RESTORE_STATUS=first_run_snapshot_seeded" >> "$GITHUB_ENV"
             echo "status=first_run_snapshot_seeded" >> "$GITHUB_OUTPUT"
             {
@@ -100,6 +106,7 @@ jobs:
             echo "EDGE_RESTORE_STATUS=failed" >> "$GITHUB_ENV"
             exit 1
           fi
+          echo "EDGE_STATE_EXPECTED_SHA=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
           mkdir -p data
           if ! git show FETCH_HEAD:state/edge-news.sqlite > "$RUNNER_TEMP/edge-news.sqlite"; then
             echo "::error::State branch exists but its SQLite database is missing or unreadable. Collection stopped; remote state was not changed."
@@ -128,12 +135,34 @@ jobs:
         if: steps.calendar.outputs.run == 'true' && endsWith(steps.calendar.outputs.scheduled_for, 'T23:50:00.000Z')
         run: echo 'EDGE_FINAL_REPORT=true' >> "$GITHUB_ENV"
       - name: Collect public feeds and disclosures
+        id: collect
         if: steps.calendar.outputs.run == 'true'
         run: node src/collect.js
       - name: Export mobile news snapshot
+        id: export
         if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         run: node src/export.js
+      - name: Checkpoint and validate SQLite before persistence
+        id: sqlite-check
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        run: |
+          node --input-type=module -e '
+            import { DatabaseSync } from "node:sqlite";
+            const db = new DatabaseSync("data/edge-news.sqlite");
+            const checkpoint = db.prepare("PRAGMA wal_checkpoint(TRUNCATE)").get();
+            const integrity = db.prepare("PRAGMA integrity_check").get();
+            const counts = {
+              articles: db.prepare("SELECT COUNT(*) AS n FROM articles").get().n,
+              runs: db.prepare("SELECT COUNT(*) AS n FROM runs").get().n,
+              reports: db.prepare("SELECT COUNT(*) AS n FROM reports").get().n
+            };
+            db.close();
+            const result = {checkpoint, integrity: Object.values(integrity)[0], counts};
+            console.log(JSON.stringify(result));
+            if (result.integrity !== "ok" || Number(checkpoint.busy) !== 0) process.exit(1);
+          '
       - name: Prepare static snapshot and compact state branch
+        id: persist
         if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
         shell: bash
         run: |
@@ -151,19 +180,78 @@ jobs:
           if [ -f "$RUNNER_TEMP/edge-news-state/krx_symbols.json" ]; then cp "$RUNNER_TEMP/edge-news-state/krx_symbols.json" state/krx_symbols.json; fi
           git add state
           git commit -m 'Update compact EDGE NEWS state'
-          if ! git push --force origin HEAD:edge-news-state; then
-            echo "::error::News collection completed but state persistence failed. The prior remote state remains intact; Pages publication was stopped to avoid publishing an unpersisted run."
+          if ! git push --force-with-lease="refs/heads/edge-news-state:${EDGE_STATE_EXPECTED_SHA}" origin HEAD:edge-news-state; then
+            echo "::error::News collection completed but state persistence failed or the state branch changed concurrently. The prior remote state was not overwritten; Pages publication was stopped."
             echo "### State persistence: failed" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
           echo "### State persistence: saved" >> "$GITHUB_STEP_SUMMARY"
+      - name: Prepare static snapshot for code push
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git fetch --no-tags origin edge-news-state; then
+            echo "::error::Cannot verify the latest saved collection state; static deployment stopped."
+            exit 1
+          fi
+          if ! git show FETCH_HEAD:state/edge-news.sqlite > "$RUNNER_TEMP/edge-news-readonly.sqlite" || ! test -s "$RUNNER_TEMP/edge-news-readonly.sqlite"; then
+            echo "::error::Cannot read the saved collection database; static deployment stopped."
+            exit 1
+          fi
+          node scripts/stage-published-data.js "$RUNNER_TEMP/edge-news-readonly.sqlite"
+          mkdir -p "$RUNNER_TEMP/edge-news-pages"
+          cp -a public/. "$RUNNER_TEMP/edge-news-pages/"
+          echo "Code push will publish static files only after the newest public snapshot is confirmed against read-only SQLite state."
       - uses: actions/configure-pages@v5
-        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        if: (steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true') || github.event_name == 'push'
       - uses: actions/upload-pages-artifact@v3
-        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        if: (steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true') || github.event_name == 'push'
         with:
           path: ${{ runner.temp }}/edge-news-pages
       - name: Deploy mobile web snapshot
         id: deployment
-        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        if: (steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true') || github.event_name == 'push'
         uses: actions/deploy-pages@v4
+      - name: Persist deployment outcome
+        id: persist-deployment
+        if: always() && steps.persist.outcome == 'success' && steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        env:
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+        shell: bash
+        run: |
+          node --input-type=module -e '
+            import { DatabaseSync } from "node:sqlite";
+            const db = new DatabaseSync("state/edge-news.sqlite");
+            const now = new Date().toISOString();
+            db.prepare("UPDATE runs SET deployment_status=?, deployment_finished_at=? WHERE id=(SELECT MAX(id) FROM runs)").run(process.env.DEPLOY_OUTCOME === "success" ? "success" : process.env.DEPLOY_OUTCOME || "unknown", now);
+            db.close();
+          '
+          git add state/edge-news.sqlite
+          git commit -m 'Record EDGE NEWS deployment outcome'
+          git push origin HEAD:edge-news-state
+      - name: Record workflow outcomes
+        if: always()
+        env:
+          CALENDAR_OUTCOME: ${{ steps.calendar.outcome }}
+          RESTORE_OUTCOME: ${{ steps.restore.outcome }}
+          COLLECT_OUTCOME: ${{ steps.collect.outcome }}
+          EXPORT_OUTCOME: ${{ steps.export.outcome }}
+          STATE_OUTCOME: ${{ steps.persist.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+          DEPLOY_STATE_OUTCOME: ${{ steps.persist-deployment.outcome }}
+        shell: bash
+        run: |
+          {
+            echo '### Workflow stage outcomes'
+            echo "- Schedule decision step: $CALENDAR_OUTCOME"
+            echo "- State restore: $RESTORE_OUTCOME"
+            echo "- Collection: $COLLECT_OUTCOME"
+            echo "- JSON generation: $EXPORT_OUTCOME"
+            echo "- State persistence: $STATE_OUTCOME"
+            echo "- Pages deployment: $DEPLOY_OUTCOME"
+            echo "- Deployment status persistence: $DEPLOY_STATE_OUTCOME"
+            echo "- Actual workflow start (UTC): $EDGE_ACTIONS_STARTED_AT"
+            echo "- Cron expression: ${EDGE_ACTIONS_SCHEDULE:-none}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
