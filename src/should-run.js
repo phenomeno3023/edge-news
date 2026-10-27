@@ -2,19 +2,36 @@ import fs from "node:fs";
 import { decideSchedule, kstParts } from "./schedule.js";
 
 const actualStartedAt = new Date(process.env.EDGE_ACTIONS_STARTED_AT || Date.now());
-const decisionAt = new Date();
 const eventType = process.env.EDGE_ACTIONS_TRIGGER || "local";
 const cronExpression = process.env.EDGE_ACTIONS_SCHEDULE || "";
-const decision = decideSchedule({
-  now: decisionAt,
+const scheduleInputs = {
   cron: cronExpression,
   event: eventType,
   scheduledAt: process.env.EDGE_ACTIONS_SCHEDULED_AT || null,
+  startedAt: actualStartedAt,
   runId: process.env.EDGE_ACTIONS_RUN_ID || null,
   runAttempt: process.env.EDGE_ACTIONS_RUN_ATTEMPT || null,
   year: process.env.KRX_CALENDAR_YEAR,
   holidays: process.env.KRX_HOLIDAYS
-});
+};
+let decision = decideSchedule({ now: new Date(), ...scheduleInputs });
+const deferredUntil = decision.waitUntil || null;
+if (deferredUntil) {
+  const waitMs = Date.parse(deferredUntil) - Date.now();
+  console.log(JSON.stringify({
+    phase: "early-start-deferred",
+    actualStartedAt: actualStartedAt.toISOString(),
+    waitUntil: deferredUntil,
+    waitMs,
+    reason: decision.reason
+  }));
+  // schedule.js only returns a boundary within the two-minute early-start
+  // grace. Keep a hard cap here so malformed state can never create a long wait.
+  if (waitMs > 0 && waitMs <= 2 * 60_000) {
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
+  decision = decideSchedule({ now: new Date(), ...scheduleInputs });
+}
 const timeParts = (value) => {
   const p = kstParts(value);
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute} KST`;
@@ -24,6 +41,7 @@ const output = {
   deployOnly: decision.deployOnly === true,
   eventType,
   cronExpression: cronExpression || null,
+  deferredUntil,
   actualStartedAtUtc: actualStartedAt.toISOString(),
   actualStartedAtKst: timeParts(actualStartedAt),
   decisionAtUtc: decision.decisionAt,
@@ -47,6 +65,7 @@ const summary = [
   `- Cron expression: ${output.cronExpression || "none"}`,
   `- Actual start: ${output.actualStartedAtUtc} UTC / ${output.actualStartedAtKst}`,
   `- Decision time: ${output.decisionAtUtc} UTC / ${output.decisionAtKst}`,
+  `- Early-start deferral: ${output.deferredUntil || "none"}`,
   `- Collection: ${output.runStatus}`,
   `- Deployment only: ${output.deployOnly}`,
   `- Day type / cadence: ${output.dayType} / ${output.cadence}`,

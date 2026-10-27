@@ -4,6 +4,7 @@ const CRONS = Object.freeze({
   twentyKst: "0 11 * * 1-5",
   hourly: "0 * * * *"
 });
+const EARLY_START_GRACE_MS = 2 * 60_000;
 
 const OFFICIAL_2026 = new Set([
   "2026-01-01","2026-02-16","2026-02-17","2026-02-18","2026-03-02","2026-05-01",
@@ -60,6 +61,46 @@ function parseOriginalSlot(value, now) {
   return { scheduledFor: new Date(ms).toISOString(), originalSlotKnown: true, slotDelayMs: now.getTime() - ms };
 }
 
+function cronMatchesUtcMinute(cron, date) {
+  const minute = date.getUTCMinutes();
+  const hour = date.getUTCHours();
+  const day = date.getUTCDay();
+  if (cron === CRONS.hourly) return minute === 0;
+  if (cron === CRONS.tenMinute) return hour === 23 && minute <= 50 && minute % 10 === 0;
+  if (cron === CRONS.thirtyMinute) return day >= 1 && day <= 5 && hour <= 10 && minute % 30 === 0;
+  if (cron === CRONS.twentyKst) return day >= 1 && day <= 5 && hour === 11 && minute === 0;
+  return false;
+}
+
+function isOperatingCronSlot(cron, date, year, holidays) {
+  const calendar = calendarFor(date, { year, holidays });
+  const p = calendar.parts;
+  const hour = Number(p.hour);
+  const minute = Number(p.minute);
+  if (!calendar.weekday) return minute === 0;
+  if (cron === CRONS.hourly) {
+    return minute === 0 && (hour === 8 || (hour >= 9 && hour <= 20));
+  }
+  if (cron === CRONS.tenMinute) return hour === 8 && minute <= 50;
+  if (cron === CRONS.thirtyMinute) return hour >= 9 && hour < 20 && (minute === 0 || minute === 30);
+  if (cron === CRONS.twentyKst) return hour === 20 && minute === 0;
+  return false;
+}
+
+function upcomingEarlySlot(startedAt, now, cron, year, holidays) {
+  const start = startedAt ? new Date(startedAt) : now;
+  if (!Number.isFinite(start.getTime())) return null;
+  const firstMinute = Math.floor(start.getTime() / 60_000) * 60_000 + 60_000;
+  for (let ms = firstMinute; ms <= start.getTime() + EARLY_START_GRACE_MS; ms += 60_000) {
+    const candidate = new Date(ms);
+    if (candidate.getTime() <= now.getTime()) continue;
+    if (!cronMatchesUtcMinute(cron, candidate)) continue;
+    if (!isOperatingCronSlot(cron, candidate, year, holidays)) continue;
+    return candidate;
+  }
+  return null;
+}
+
 function decisionBase(now, calendar, event, cron) {
   return {
     ...calendar,
@@ -76,7 +117,7 @@ function decisionBase(now, calendar, event, cron) {
 
 export function decideSchedule({
   now = new Date(), cron = "", event = "schedule", year, holidays,
-  scheduledAt = null, runId = null, runAttempt = null
+  scheduledAt = null, startedAt = null, runId = null, runAttempt = null
 } = {}) {
   const actual = now instanceof Date ? now : new Date(now);
   if (!Number.isFinite(actual.getTime())) throw new TypeError("now must be a valid date");
@@ -112,6 +153,15 @@ export function decideSchedule({
 
   const knownCron = Object.values(CRONS).includes(cron);
   if (!knownCron) return skip("unrecognized scheduled cron expression");
+
+  const earlySlot = upcomingEarlySlot(startedAt || actual, actual, cron, year, holidays);
+  if (earlySlot) {
+    return {
+      ...base, run: false, cadence: "deferred-early-start",
+      reason: "schedule event began shortly before a confirmed operating cron boundary; wait for that boundary and re-evaluate",
+      waitUntil: earlySlot.toISOString()
+    };
+  }
 
   // Multiple GitHub cron expressions overlap at the top of the hour. Route
   // any recognized event through the KST calendar/window first, then use the

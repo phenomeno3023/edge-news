@@ -94,24 +94,46 @@ test("all configured weekday collection slots remain enabled", () => {
   }
 });
 
-test("early and delayed overlap events use only the active window and never invent an original slot", () => {
-  const earlyOverlap = decideSchedule({ now: "2026-10-27T06:58:31Z", cron: SCHEDULE_CRONS.hourly, ...cal });
+test("early overlap waits for the confirmed boundary; delayed overlap uses the active window", () => {
+  const earlyOverlap = decideSchedule({
+    now: "2026-10-27T06:58:41Z", startedAt: "2026-10-27T06:58:31Z",
+    cron: SCHEDULE_CRONS.hourly, ...cal
+  });
   const delayedOverlap = decideSchedule({ now: "2026-10-27T07:05:00Z", cron: SCHEDULE_CRONS.hourly, ...cal });
-  assert.equal(earlyOverlap.run, true);
-  assert.equal(earlyOverlap.dedupeKey, "window:2026-10-27:trading:15:30");
+  assert.equal(earlyOverlap.run, false);
+  assert.equal(earlyOverlap.cadence, "deferred-early-start");
+  assert.equal(earlyOverlap.waitUntil, "2026-10-27T07:00:00.000Z");
   assert.equal(earlyOverlap.scheduledFor, null);
   assert.equal(earlyOverlap.originalSlotKnown, false);
+  const afterBoundary = decideSchedule({
+    now: "2026-10-27T07:00:01Z", startedAt: "2026-10-27T06:58:31Z",
+    cron: SCHEDULE_CRONS.hourly, ...cal
+  });
+  assert.equal(afterBoundary.run, true);
+  assert.equal(afterBoundary.dedupeKey, "window:2026-10-27:trading:16:00");
+  assert.equal(afterBoundary.scheduledFor, null);
   assert.equal(delayedOverlap.run, true);
   assert.equal(delayedOverlap.dedupeKey, "window:2026-10-27:trading:16:00");
   assert.equal(delayedOverlap.scheduledFor, null);
 });
 
-test("early event outside an active KST window is safely skipped without slot inference", () => {
-  const d = decideSchedule({ now: "2026-10-26T22:58:00Z", cron: SCHEDULE_CRONS.hourly, ...cal });
+test("early event shortly before the morning window waits; earlier events are safely skipped", () => {
+  const d = decideSchedule({
+    now: "2026-10-26T22:58:10Z", startedAt: "2026-10-26T22:58:00Z",
+    cron: SCHEDULE_CRONS.hourly, ...cal
+  });
   assert.equal(d.run, false);
+  assert.equal(d.cadence, "deferred-early-start");
+  assert.equal(d.waitUntil, "2026-10-26T23:00:00.000Z");
   assert.equal(d.scheduledFor, null);
   assert.equal(d.originalSlotKnown, false);
-  assert.match(d.reason, /outside an active weekday collection window/);
+  const tooEarly = decideSchedule({
+    now: "2026-10-26T22:57:59Z", startedAt: "2026-10-26T22:57:59Z",
+    cron: SCHEDULE_CRONS.hourly, ...cal
+  });
+  assert.equal(tooEarly.run, false);
+  assert.equal(tooEarly.waitUntil, undefined);
+  assert.match(tooEarly.reason, /outside an active weekday collection window/);
 });
 
 test("different cron expressions resolving to the same current window share an idempotency key", () => {
