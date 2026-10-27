@@ -8,7 +8,7 @@
 
 - 예약 이벤트는 기존 cron과 KST 수집 정책을 따릅니다. 지연된 오전 cron은 운영 수집 창 안에서만 복구하며, 20:00 이후에는 실행하지 않습니다.
 - `workflow_dispatch`는 주중 08:00–08:50, 09:00–20:00 또는 주말·확인된 휴장일에만 수집합니다. 그 밖의 시각은 건너뜁니다.
-- `push`는 뉴스 수집이나 SQLite 복원·저장을 하지 않고 커밋된 정적 웹 파일만 Pages에 배포합니다. 따라서 기존의 코드 push에 따른 즉시 수집 동작은 제거됩니다.
+- `push`는 뉴스 수집이나 SQLite 변경을 하지 않습니다. 공개 Pages의 `news.json`/`status.json`과 저장된 SQLite의 최신 완료 시각을 읽기 전용으로 대조하고, 최신 쌍을 정적 파일에 반영할 수 있을 때만 배포합니다. 조회 실패·시각 불일치·저장 DB보다 오래된 JSON이면 배포를 중단합니다. 기존의 코드 push에 따른 즉시 수집 동작은 제거됩니다.
 - 모든 workflow 실행은 main ref에서만 실행됩니다. 개발/준비 브랜치의 수동 실행은 운영 Pages로 배포하지 않습니다.
 - 동일 workflow의 예약·push·수동 실행은 하나의 concurrency group에서 직렬화됩니다. SQLite는 runner 로컬 상태이며 분산 잠금이 아닙니다.
 - compact 상태 커밋은 fetch 당시 원격 SHA를 `--force-with-lease`로 확인해 기록합니다. 최초 브랜치 생성은 예상 원격 SHA가 없을 때만 허용하며, 동시 writer가 먼저 갱신하면 저장과 Pages 배포를 실패시켜 데이터 덮어쓰기를 막습니다. 배포 결과 추가 기록은 fast-forward push만 허용합니다.
@@ -16,6 +16,7 @@
 ## 상태 저장 및 실패 복구
 
 - 현재 저장소의 `.github/workflows/`에는 이 수집 workflow 하나만 있습니다. 해당 workflow가 `edge-news-state`를 복원·갱신하는 단일 작성자입니다.
+- push 배포는 `edge-news-state`의 SQLite를 임시 파일로 가져와 읽기 전용으로 확인합니다. 데이터베이스를 쓰거나 상태 브랜치를 변경하지 않습니다.
 - 복원 뒤 수집 → JSON 생성 → WAL checkpoint/integrity 검사 → 상태 브랜치 저장 → Pages 배포 순서를 유지합니다. JSON 또는 상태 저장 단계가 실패하면 Pages 배포는 시작하지 않습니다.
 - Pages 배포 실패 뒤에도 상태 DB에는 기사와 생성된 JSON 단계가 남습니다. 배포 성공으로 기록되지 않았으므로 다음 시도는 재실행할 수 있고 기사 URL 유일성 및 collection-window dedupe가 중복을 줄입니다.
 - 동시 실행은 GitHub Actions concurrency로 직렬화하고, SQLite dedupe key는 복원된 공유 상태 브랜치에서 판정합니다. 다른 워크플로·수동 외부 writer가 상태 브랜치를 함께 쓰기 시작하면 이 보장은 깨지므로 운영 적용을 중단하고 공용 잠금/충돌 제어를 별도로 마련해야 합니다.
@@ -29,7 +30,7 @@
 
 1. 운영 DB 상태 브랜치의 파일을 읽기 전용으로 내려받아 별도 백업하고, 파일 SHA-256, 행 수, `PRAGMA integrity_check`를 기록합니다. 운영 브랜치에 기록하지 않습니다.
 2. 백업 복사본에만 이 브랜치의 초기화/마이그레이션을 적용하고 기존 행, URL unique 제약, WAL checkpoint와 구버전 삽입 호환성을 확인합니다.
-3. main에 적용할 최소 런타임 파일은 `.github/workflows/edge-news.yml`, `src/schedule.js`, `src/should-run.js`, `src/collect.js`, `src/collection-guard.js`, `src/store.js`, `src/export.js`입니다. `src/schedule-audit.js`, `test/step16-*.test.js`, `test/workflow-safety.test.js`, 이 문서는 검증 자료이며 운영 런타임에 포함할 필요가 없습니다. 정확한 diff와 `push` 동작 변경을 승인받습니다.
+3. main에 적용할 최소 런타임 파일은 `.github/workflows/edge-news.yml`, `src/schedule.js`, `src/should-run.js`, `src/collect.js`, `src/collection-guard.js`, `src/store.js`, `src/export.js`, `scripts/stage-published-data.js`입니다. `src/schedule-audit.js`, 테스트와 이 문서는 검증 자료입니다. 정확한 diff와 `push` 동작 변경을 승인받습니다.
 4. 배포 후 첫 실행에서 restore → collect → JSON → state save → Pages 결과를 확인합니다.
 5. 08:00, 08:10, 08:20, 08:30, 08:40, 08:50 각각에 대해 실제 scheduled event와 실제 시작 시각, 수집·JSON·배포 결과를 별도로 대조합니다. 미도래 슬롯과 이벤트 미도착은 PASS가 아닙니다.
 
