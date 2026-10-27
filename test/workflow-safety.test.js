@@ -33,12 +33,13 @@ test("restore, collection, export, state save, page deploy, and outcome save rem
   assert.doesNotMatch(workflow, /git push --force origin HEAD:edge-news-state/);
 });
 
-test("push deployments stage committed assets without collection or SQLite access", () => {
+test("push deployments verify live data against read-only SQLite before staging assets", () => {
   assert.match(workflow, /if: github\.ref == 'refs\/heads\/main'/);
-  assert.match(workflow, /name: Prepare static snapshot for code push[\s\S]*?if: github\.event_name == 'push'[\s\S]*?cp -a public\/\. "\$RUNNER_TEMP\/edge-news-pages\/"/);
+  assert.match(workflow, /name: Prepare static snapshot for code push[\s\S]*?if: github\.event_name == 'push'[\s\S]*?git fetch --no-tags origin edge-news-state[\s\S]*?node scripts\/stage-published-data\.js "\$RUNNER_TEMP\/edge-news-readonly\.sqlite"[\s\S]*?cp -a public\/\. "\$RUNNER_TEMP\/edge-news-pages\/"/);
   assert.match(workflow, /if: \(steps\.calendar\.outputs\.run == 'true' && env\.EDGE_COLLECTION_DUPLICATE != 'true'\) \|\| github\.event_name == 'push'/);
   const pushStage = workflow.indexOf("name: Prepare static snapshot for code push");
   const restore = workflow.indexOf("name: Restore compact collection state");
   assert.ok(pushStage > restore);
   assert.match(schedule, /manual collection is limited to configured KST operating windows/);
+  assert.match(workflow, /Cannot verify the latest saved collection state; static deployment stopped/);
 });
