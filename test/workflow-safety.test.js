@@ -29,6 +29,8 @@ test("restore, collection, export, state save, page deploy, and outcome save rem
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
   assert.match(workflow, /PRAGMA wal_checkpoint\(TRUNCATE\)/);
   assert.match(workflow, /PRAGMA integrity_check/);
+  assert.match(workflow, /--force-with-lease="refs\/heads\/edge-news-state:\$\{EDGE_STATE_EXPECTED_SHA\}"/);
+  assert.doesNotMatch(workflow, /git push --force origin HEAD:edge-news-state/);
 });
 
 test("push deployments stage committed assets without collection or SQLite access", () => {
