@@ -87,11 +87,9 @@ export function decideSchedule({
   const minute = Number(p.minute);
   const original = parseOriginalSlot(scheduledAt, actual);
   const key = kstWindowKey(calendar, hour, minute);
-  const slotKey = original.originalSlotKnown
-    ? `slot:${original.scheduledFor}`
-    : cron === CRONS.tenMinute && hour >= 9 && hour < 20
-      ? `window:${calendar.date}:morning-recovery:${String(hour).padStart(2, "0")}:${String(Math.floor(minute / 10) * 10).padStart(2, "0")}`
-      : key;
+  // When GitHub does not provide the original slot, every recognized event
+  // resolving to the same active KST window shares one idempotency key.
+  const slotKey = original.originalSlotKnown ? `slot:${original.scheduledFor}` : key;
   const exact = { ...original };
   const permit = (cadence, reason, dedupeKey = slotKey) => ({
     ...base, ...exact, run: true, cadence, reason,
@@ -112,19 +110,40 @@ export function decideSchedule({
   }
   if (event !== "schedule") return skip("unsupported event");
 
-  if (cron === CRONS.hourly) {
-    if (calendar.mode !== "holiday-hourly") {
-      return skip("hourly cron is reserved for weekends and KRX holidays");
+  const knownCron = Object.values(CRONS).includes(cron);
+  if (!knownCron) return skip("unrecognized scheduled cron expression");
+
+  // Multiple GitHub cron expressions overlap at the top of the hour. Route
+  // any recognized event through the KST calendar/window first, then use the
+  // active window as the dedupe key. This also lets a delayed overlapping
+  // event recover the current window without claiming an unknown old slot.
+  if (!calendar.weekday) {
+    const overlappingTopOfHour = minute === 0 && cron !== CRONS.hourly;
+    if (cron !== CRONS.hourly && !overlappingTopOfHour) {
+      return skip("non-trading day uses hourly cadence; non-hourly event is not an exact top-of-hour overlap");
     }
-    return permit("holiday-hourly", "weekend/holiday hourly collection; original cron slot is not supplied");
+    return permit(
+      "holiday-hourly",
+      "weekend/KRX-holiday event accepted in the current KST hour; exact original slot is unavailable",
+      key
+    );
   }
 
-  if (!calendar.weekday) {
-    return skip("non-trading day follows hourly cadence; this cron is not the hourly trigger");
+  if (cron === CRONS.hourly) {
+    if (hour === 8 && minute <= 50) {
+      return permit("morning-10m", "overlapping hourly cron accepted in the active weekday morning window; original slot is unknown");
+    }
+    if (hour >= 9 && hour < 20) {
+      return permit("trading-day-30m", "overlapping hourly cron accepted in the active weekday trading window; original slot is unknown");
+    }
+    if (hour === 20 && minute === 0) {
+      return permit("trading-day-final", "overlapping hourly cron accepted at the weekday 20:00 final window; original slot is unknown");
+    }
+    return skip("overlapping hourly cron is outside an active weekday collection window");
   }
 
   if (cron === CRONS.tenMinute) {
-    if (hour === 8) {
+    if (hour === 8 && minute <= 50) {
       const reason = original.originalSlotKnown
         ? "morning sweep accepted inside its KST collection window"
         : "morning sweep accepted; exact original cron slot is unavailable";
@@ -138,7 +157,7 @@ export function decideSchedule({
           : "delayed morning event recovered in active collection window; original cron slot is unknown"
       );
     }
-    return skip("morning sweep arrived outside the weekday collection window; after 20:00 is blocked");
+    return skip("morning sweep arrived outside the weekday 08:00-08:50 window; after 20:00 is blocked");
   }
 
   if (cron === CRONS.thirtyMinute) {
