@@ -14,3 +14,4 @@
 .nxt-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.nxt-state[data-state=DEMO],.nxt-badge[data-state=DEMO]{border-color:#9a6c2e;color:#ffe0a6;background:#332514}.nxt-card-demo{border-style:dashed}.nxt-card-demo .nxt-rank{background:#3a2c1b;color:#ffe0a6}
 @media(max-width:650px){.nxt-detail-lookup{padding:12px}.nxt-detail-lookup form{grid-template-columns:1fr auto}.nxt-detail-lookup form label{grid-column:1/-1}.nxt-detail-lookup form small{grid-column:1/-1;line-height:1.45}.nxt-detail-head{align-items:flex-start}.nxt-detail-head span{max-width:120px;text-align:center;white-space:normal}}
 @media(max-width:650px){.nxt-actions{display:grid;gap:6px}.nxt-actions button{font-size:10px;padding:7px;white-space:nowrap}}
+@media(max-width:650px){.nxt-heading{flex-direction:column;align-items:stretch}.nxt-actions{width:100%;grid-template-columns:repeat(2,minmax(0,1fr))}.nxt-actions button{min-width:0;white-space:normal;line-height:1.3}}
