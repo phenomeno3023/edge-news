@@ -16,3 +16,15 @@ export function parseSlotDelayMs(value) {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+export function shouldPublishCollection({ sourceStatuses = {}, rssSourceKeys = [], dartConfigured = false } = {}) {
+  const successfulRssSources = rssSourceKeys.filter((key) => String(sourceStatuses[key] || "").startsWith("ok:"));
+  const successfulDart = dartConfigured && String(sourceStatuses.DART || "") === "ok";
+  const publish = successfulRssSources.length > 0 || successfulDart;
+  return {
+    publish,
+    successfulRssSources,
+    successfulDart,
+    reason: publish ? "at least one configured news source completed successfully" : "all configured RSS sources and configured DART collection failed; retain the current public JSON"
+  };
+}
+
