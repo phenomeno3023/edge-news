@@ -5,7 +5,7 @@ import path from 'node:path';
 import {load as loadHtml} from 'cheerio';
 import iconv from 'iconv-lite';
 import {db} from './store.js';
-import {duplicateRunReason,parseSlotDelayMs} from './collection-guard.js';
+import {duplicateRunReason,parseSlotDelayMs,shouldPublishCollection} from './collection-guard.js';
 import {analyze,stableId,normalizeTitle} from './analyze.js';
 import {matchSymbol} from './symbol-match.js';
 import {getNewsCoverageWindow,isWithinNewsCoverage} from './news-window.js';
@@ -25,6 +25,7 @@ async function loadSymbols(){
   if(!items.length)throw Error('상장법인 목록에서 종목명·코드를 읽지 못했습니다.');fs.mkdirSync(path.dirname(cache),{recursive:true});fs.writeFileSync(cache,JSON.stringify({savedAt:Date.now(),items}));return `updated:${items.length}`;
  }catch(e){try{const saved=JSON.parse(fs.readFileSync(cache,'utf8'));for(const x of saved.items)symbols.set(x.name,{ticker:x.ticker,company:x.name});return `stale-cache:${symbols.size}; ${e.message}`;}catch{return `error:${e.message}`}}
 }
+const rssSourceKeys=sources.map((url)=>{try{const u=new URL(url);return `${u.hostname}${u.pathname}`;}catch{return 'RSS';}});
 const symbolStatus=await loadSymbols();
 for(const row of db.prepare("SELECT id,title,source,summary,status FROM articles").all()){
  const isKind=row.source.includes('kind.krx.co.kr')||row.source.includes('오늘의공시');
@@ -103,6 +104,8 @@ for(const url of sources){
  catch(e){states[h]=`error: ${e.message}`;errors.push(`${h}: ${e.message}`)}
 }
 const finished=now();
+const publication=shouldPublishCollection({sourceStatuses:states,rssSourceKeys,dartConfigured:Boolean(dartKey)});
+if(!publication.publish)errors.push(publication.reason);
 const runStatus=Object.values(states).some(x=>String(x).startsWith('error'))?'partial':'ok';
 const errorCode=errors.length?'SOURCE_PARTIAL_FAILURE':null;
 db.prepare('UPDATE runs SET finished_at=?,collection_finished_at=?,status=?,source_status=?,added=?,updated=?,error=?,error_code=? WHERE id=?').run(finished,finished,runStatus,JSON.stringify(states),added,updated,errors.join('; ').slice(0,1000),errorCode,run);
@@ -116,7 +119,10 @@ if(hm==='08:50'||process.env.EDGE_FINAL_REPORT==='true'){
 }
 const kstLabel=(value)=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'medium'}).format(new Date(value))+' KST';
 const runLog={run,eventType:triggerType,cronExpression,scheduledFor,originalSlotKnown:scheduledSlotKnown,slotDelayMs,dedupeKey,workflowStartedAtUtc:workflowStartedAt,collectionStartedAtUtc:collectionStartedAt,collectionStartedAtKst:kstLabel(collectionStartedAt),collectionFinishedAtUtc:finished,collectionFinishedAtKst:kstLabel(finished),status:runStatus,sourceStatus:states,added,updated,jsonStatus:'awaiting_export',deploymentStatus:'awaiting_workflow',errorCode,errors};
+runLog.publish=publication.publish;
+runLog.publicationReason=publication.reason;
+if(process.env.GITHUB_OUTPUT)fs.appendFileSync(process.env.GITHUB_OUTPUT,`publish=${publication.publish}\npublication_reason=${publication.reason.replace(/[\r\n]/g,' ')}\n`);
 console.log(JSON.stringify(runLog));
-if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Collection execution\n\n- Run: ${run}\n- Event: ${triggerType}\n- Cron: ${cronExpression||'none'}\n- Scheduled slot: ${scheduledFor||'unknown'}\n- Original slot known: ${scheduledSlotKnown}\n- Collection: ${collectionStartedAt} → ${finished}\n- Status: ${runStatus}\n- Added/updated: ${added}/${updated}\n- Error code: ${errorCode||'none'}\n`);
+if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Collection execution\n\n- Run: ${run}\n- Event: ${triggerType}\n- Cron: ${cronExpression||'none'}\n- Scheduled slot: ${scheduledFor||'unknown'}\n- Original slot known: ${scheduledSlotKnown}\n- Collection: ${collectionStartedAt} → ${finished}\n- Status: ${runStatus}\n- Added/updated: ${added}/${updated}\n- Publish current snapshot: ${publication.publish}\n- Publication decision: ${publication.reason}\n- Error code: ${errorCode||'none'}\n`);
 db.exec("DELETE FROM articles WHERE first_seen_at < datetime('now','-120 days'); DELETE FROM runs WHERE started_at < datetime('now','-180 days'); DELETE FROM reports WHERE trade_date < date('now','-180 days'); PRAGMA wal_checkpoint(TRUNCATE)");
 
