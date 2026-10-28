@@ -72,6 +72,9 @@
   const validStatus = new Set(["LIVE", "DELAYED", "STALE", "UNVERIFIED"]);
   const statusLabel = { LIVE: "LIVE · 검증된 실시간", DELAYED: "DELAYED · 지연 데이터", STALE: "STALE · 오래된 시세", UNVERIFIED: "UNVERIFIED · 검증 대기" };
 
+  let demoMode = false;
+  let demoSnapshotPromise = null;
+
   function statusFor(item, root, now = Date.now()) {
     const claimed = validStatus.has(item?.status) ? item.status : "UNVERIFIED";
     const eventAt = item?.eventAt || item?.asOf || root?.asOf;
@@ -184,6 +187,40 @@
     }).join("");
   }
 
+  function renderDemo(snapshot) {
+    const list = $("#nxt-list");
+    const status = $("#nxt-state");
+    const meta = $("#nxt-meta");
+    if (!list || !status || !meta) return;
+    if (!snapshot || snapshot.status !== "DEMO" || snapshot.liveVerified !== false || !Array.isArray(snapshot.items)) {
+      status.textContent = "DEMO 데이터를 확인할 수 없습니다.";
+      status.dataset.state = "STALE";
+      list.innerHTML = '<div class="nxt-empty">가상 예시 데이터를 표시하지 못했습니다.</div>';
+      return;
+    }
+    status.textContent = "DEMO · 가상 화면 예시이며 실제 NXT 시세·순위가 아닙니다.";
+    status.dataset.state = "DEMO";
+    meta.textContent = "출처: 내장 가상 예시 데이터 · 시세 기준 시각 없음 · 기준가격·집계범위 미검증 · 실제 뉴스·공시 미연결";
+    list.innerHTML = snapshot.items.map((item) => `<article class="nxt-card nxt-card-demo"><div class="nxt-card-head"><b class="nxt-rank">${escapeHtml(item.rank)}</b><div class="nxt-company"><strong>${escapeHtml(item.company)}</strong><small>${escapeHtml(item.ticker)} · 가상 식별자</small></div><span class="nxt-badge" data-state="DEMO">DEMO · 모의</span></div><div class="nxt-numbers"><div><small>현재가 · 모의</small><b>${escapeHtml(numberText(item.price, "원"))}</b></div><div><small>등락률 · 모의</small><b>${escapeHtml(numberText(item.changePercent, "%"))}</b></div><div><small>거래량 · 모의</small><b>${escapeHtml(numberText(item.volume, "주"))}</b></div><div><small>거래대금 · 모의</small><b>${escapeHtml(numberText(item.turnover, "원"))}</b></div></div><p class="nxt-time">시세 기준 시각 없음 · 수신 시각 없음 · ${escapeHtml(item.source)}</p><div class="nxt-cause"><b>뉴스 0건 · 공시 0건</b><br>가상 식별자라 실제 종목 뉴스·공시와 연결하지 않았습니다.<br><small>이 예시는 화면·정렬 확인용이며 실제 시장 순위를 뜻하지 않습니다.</small></div></article>`).join("");
+  }
+
+  async function showDemo() {
+    const status = $("#nxt-state");
+    if (status) {
+      status.textContent = "DEMO 예시 데이터를 불러오는 중입니다.";
+      status.dataset.state = "DEMO";
+    }
+    try {
+      demoSnapshotPromise ||= import("./demo-nxt.js").then((module) => module.demoNxtSnapshot);
+      renderDemo(await demoSnapshotPromise);
+    } catch {
+      if (status) {
+        status.textContent = "DEMO 예시 데이터를 불러오지 못했습니다.";
+        status.dataset.state = "STALE";
+      }
+    }
+  }
+
   function renderDetail(result, ticker, marketItem = null) {
     const target = $("#nxt-detail");
     if (!target) return;
@@ -276,6 +313,10 @@
   async function refresh() {
     const status = $("#nxt-state");
     const list = $("#nxt-list");
+    if (demoMode) {
+      await showDemo();
+      return;
+    }
     let root = null;
     let newsSource = null;
     try {
@@ -329,6 +370,13 @@
     if (view === "nxt") refresh();
   }));
   $("#nxt-refresh")?.addEventListener("click", refresh);
+  $("#nxt-demo-toggle")?.addEventListener("click", (event) => {
+    demoMode = !demoMode;
+    event.currentTarget.setAttribute("aria-pressed", String(demoMode));
+    event.currentTarget.textContent = demoMode ? "실제 연결 상태 보기" : "DEMO 예시 보기";
+    if (demoMode) showDemo();
+    else refresh();
+  });
   $("#nxt-lookup-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     loadDetail($("#nxt-lookup")?.value);
