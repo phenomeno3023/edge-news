@@ -3,6 +3,7 @@ import {db} from './store.js';
 import {spawn} from 'node:child_process';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {getCollectionRecoveryStatus} from './recovery-status.js';
 const app=express(), port=Number(process.env.PORT||3000), root=path.dirname(fileURLToPath(import.meta.url));
 app.use(express.json());
 app.use(express.static(path.join(root,'../public')));
@@ -10,7 +11,8 @@ app.get('/api/news',(req,res)=>{
  const q=String(req.query.q||'').slice(0,80),grade=String(req.query.grade||''),category=String(req.query.category||'');
  const dateParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),today=`${dateParts.find(x=>x.type==='year').value}-${dateParts.find(x=>x.type==='month').value}-${dateParts.find(x=>x.type==='day').value}`;
  const rows=db.prepare(`SELECT * FROM articles WHERE status IN ('active','corrected') AND (date(published_at,'+9 hours')=? OR (date(published_at,'+9 hours')=date(?,'-1 day') AND time(published_at,'+9 hours')>='15:30:00')) AND (?='' OR company LIKE ? OR title LIKE ? OR ticker LIKE ?) AND (?='' OR grade=?) AND (?='' OR category=?) ORDER BY CASE grade WHEN 'S' THEN 0 WHEN 'A' THEN 1 WHEN 'B' THEN 2 ELSE 3 END,published_at DESC,first_seen_at DESC LIMIT 300`).all(today,today,q,`%${q}%`,`%${q}%`,`%${q}%`,grade,grade,category,category);
- res.json({items:rows.map(r=>({...r,amounts:JSON.parse(r.amounts),facts:JSON.parse(r.facts)})),latestRun:db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 1').get()||null,report:db.prepare('SELECT * FROM reports ORDER BY trade_date DESC LIMIT 1').get()||null,serverTime:new Date().toISOString()});
+ const now=new Date();
+ res.json({items:rows.map(r=>({...r,amounts:JSON.parse(r.amounts),facts:JSON.parse(r.facts)})),latestRun:db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 1').get()||null,collectionHealth:getCollectionRecoveryStatus(db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 500').all(),{now,year:process.env.KRX_CALENDAR_YEAR,holidays:process.env.KRX_HOLIDAYS}),report:db.prepare('SELECT * FROM reports ORDER BY trade_date DESC LIMIT 1').get()||null,serverTime:now.toISOString()});
 });
 app.get('/api/health',(req,res)=>res.json({ok:true,service:'EDGE NEWS',version:'1.0.0',time:new Date().toISOString(),storage:process.env.DB_PATH?'configured':'local-default'}));
 app.post('/api/collect',(req,res)=>{
