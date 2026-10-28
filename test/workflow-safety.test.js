@@ -29,3 +29,13 @@ test("restore, collection, export, state save, page deploy, and outcome save rem
   assert.match(workflow, /PRAGMA wal_checkpoint\(TRUNCATE\)/);
   assert.match(workflow, /PRAGMA integrity_check/);
 });
+
+
+test("failed recovery source set preserves old public JSON and prevents branch Pages deployment", () => {
+  assert.match(workflow, /if: github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /Keep the last published JSON when every news source fails/);
+  assert.match(workflow, /steps\.collect\.outputs\.publish != 'false'/);
+  assert.match(workflow, /steps\.collect\.outputs\.publish == 'false'/);
+  assert.match(workflow, /steps\.export\.outcome == 'success'/);
+  assert.match(workflow, /The prior remote state was not overwritten; Pages publication was stopped/);
+});
