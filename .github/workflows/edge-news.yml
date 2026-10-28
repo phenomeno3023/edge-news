@@ -10,6 +10,13 @@ on:
       - src/schedule.js
       - src/news-window.js
       - src/collect.js
+      - src/collection-guard.js
+      - src/recovery-status.js
+      - src/server.js
+      - test/collection-guard.test.js
+      - test/nxt-ui.test.js
+      - test/recovery-status.test.js
+      - test/workflow-safety.test.js
       - src/symbol-match.js
       - test/pwa.test.js
       - test/schedule.test.js
@@ -39,6 +46,7 @@ concurrency:
 
 jobs:
   collect-and-publish:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -134,8 +142,11 @@ jobs:
         run: node src/collect.js
       - name: Export mobile news snapshot
         id: export
-        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true' && steps.collect.outputs.publish != 'false'
         run: node src/export.js
+      - name: Keep the last published JSON when every news source fails
+        if: steps.calendar.outputs.run == 'true' && steps.collect.outputs.publish == 'false'
+        run: echo "Collection failure recorded. Export and Pages deployment are skipped so the existing public JSON stays unchanged."
       - name: Checkpoint and validate SQLite before persistence
         id: sqlite-check
         if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
@@ -181,18 +192,18 @@ jobs:
           fi
           echo "### State persistence: saved" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/configure-pages@v5
-        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true' && steps.export.outcome == 'success'
       - uses: actions/upload-pages-artifact@v3
-        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true' && steps.export.outcome == 'success'
         with:
           path: ${{ runner.temp }}/edge-news-pages
       - name: Deploy mobile web snapshot
         id: deployment
-        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        if: steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true' && steps.export.outcome == 'success'
         uses: actions/deploy-pages@v4
       - name: Persist deployment outcome
         id: persist-deployment
-        if: always() && steps.persist.outcome == 'success' && steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true'
+        if: always() && steps.persist.outcome == 'success' && steps.calendar.outputs.run == 'true' && env.EDGE_COLLECTION_DUPLICATE != 'true' && steps.export.outcome == 'success'
         env:
           DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
         shell: bash
