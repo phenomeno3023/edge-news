@@ -49,7 +49,7 @@ test("NXT view does not invoke Android install prompts and treats absent data as
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"purpose": "maskable"/);
   assert.match(manifest, /edge-nxt-maskable-512\.png/);
-  assert.match(serviceWorker, /edge-nxt-step23-20261028/);
+  assert.match(serviceWorker, /edge-nxt-step24-20261028/);
   assert.match(serviceWorker, /demo-nxt\.js/);
   assert.match(nxt, /DEMO · 가상 화면 예시이며 실제 NXT 시세·순위가 아닙니다/);
   assert.match(nxt, /시세 기준 시각 없음/);
@@ -57,6 +57,9 @@ test("NXT view does not invoke Android install prompts and treats absent data as
   assert.match(html, /edge-nxt-step13-20261026a/);
   assert.match(serviceWorker, /data\/nxt\.json/);
   assert.match(css, /@media\(max-width:650px\).*nxt-list/s);
+  assert.match(css, /@media\(max-width:650px\)\{\.nxt-heading\{flex-direction:column/);
+  assert.match(css, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.nxt-actions button\{min-width:0;white-space:normal/);
   assert.match(css, /nxt-detail-lookup/);
 });
 
