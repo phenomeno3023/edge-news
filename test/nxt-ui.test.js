@@ -18,6 +18,7 @@ test("EDGE NXT view coexists with the legacy news screen and keeps the old URL",
   assert.match(html, /edge-nxt-step13-20261026a/);
   assert.match(html, /id="nxt-lookup-form"/);
   assert.match(html, /id="nxt-detail"/);
+  assert.match(html, /id="nxt-demo-toggle"/);
   assert.ok(html.indexOf('id="install-help"') < html.indexOf('<main>'), "shortcut help must be outside the initially hidden news panel");
   assert.match(html, /edge-nxt\.svg/);
   assert.match(html, /NXT MARKET DATA/);
@@ -48,7 +49,10 @@ test("NXT view does not invoke Android install prompts and treats absent data as
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"purpose": "maskable"/);
   assert.match(manifest, /edge-nxt-maskable-512\.png/);
-  assert.match(serviceWorker, /edge-nxt-step13-20261026a/);
+  assert.match(serviceWorker, /edge-nxt-step23-20261028/);
+  assert.match(serviceWorker, /demo-nxt\.js/);
+  assert.match(nxt, /DEMO · 가상 화면 예시이며 실제 NXT 시세·순위가 아닙니다/);
+  assert.match(nxt, /시세 기준 시각 없음/);
   assert.match(serviceWorker, /edge-nxt-maskable-512\.png/);
   assert.match(html, /edge-nxt-step13-20261026a/);
   assert.match(serviceWorker, /data\/nxt\.json/);
