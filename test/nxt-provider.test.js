@@ -14,6 +14,7 @@ import {
   parseNxtWebSocketMessage,
   reconnectDelayMs
 } from "../src/nxt/provider.js";
+import { buildNxtTop10 } from "../src/nxt/top10.js";
 
 test("NXT REST request stays disabled unless explicitly enabled and pins NX market", () => {
   assert.throws(() => createNxtRestRequest(), /NXT_COLLECTION_DISABLED/);
@@ -110,13 +111,26 @@ test("freshness gate prevents unsupported LIVE status and detects stale or delay
 
 test("TOP10 order uses percent then turnover then ticker and exact ticker news match", () => {
   const rows = [
-    { ticker: "000003", changePercent: 5, turnover: 100, price: 1, status: "LIVE", market: "NXT", sessionCode: "3" },
-    { ticker: "000002", changePercent: 5, turnover: 200, price: 1, status: "LIVE", market: "NXT", sessionCode: "3" },
-    { ticker: "000001", changePercent: 6, turnover: 50, price: 1, status: "UNVERIFIED", market: "NXT", sessionCode: "3" },
-    { ticker: "000004", changePercent: 9, turnover: 500, price: 1, status: "LIVE", market: "NXT", sessionCode: "2" },
-    { ticker: "000005", changePercent: 8, turnover: 500, price: 1, status: "LIVE", market: "KRX", sessionCode: "3" },
-    { ticker: "000006", changePercent: 7, turnover: 500, price: 1, status: "LIVE", market: "NXT" }
+    { ticker: "000003", changePercent: 5, volume: 1, turnover: 100, price: 1, eventAt: "2026-10-25T08:00:00Z", receivedAt: "2026-10-25T08:00:00Z", status: "LIVE", market: "NXT", sessionCode: "3" },
+    { ticker: "000002", changePercent: 5, volume: 1, turnover: 200, price: 1, eventAt: "2026-10-25T08:00:00Z", receivedAt: "2026-10-25T08:00:00Z", status: "LIVE", market: "NXT", sessionCode: "3" },
+    { ticker: "000001", changePercent: 6, volume: 1, turnover: 50, price: 1, eventAt: "2026-10-25T08:00:00Z", receivedAt: "2026-10-25T08:00:00Z", status: "UNVERIFIED", market: "NXT", sessionCode: "3" },
+    { ticker: "000004", changePercent: 9, volume: 1, turnover: 500, price: 1, eventAt: "2026-10-25T08:00:00Z", receivedAt: "2026-10-25T08:00:00Z", status: "LIVE", market: "NXT", sessionCode: "2" },
+    { ticker: "000005", changePercent: 8, volume: 1, turnover: 500, price: 1, eventAt: "2026-10-25T08:00:00Z", receivedAt: "2026-10-25T08:00:00Z", status: "LIVE", market: "KRX", sessionCode: "3" },
+    { ticker: "000006", changePercent: 7, volume: 1, turnover: 500, price: 1, eventAt: "2026-10-25T08:00:00Z", receivedAt: "2026-10-25T08:00:00Z", status: "LIVE", market: "NXT" }
   ];
   assert.deepEqual(orderNxtTop10(rows).map((x) => x.ticker), ["000002", "000003"]);
   assert.deepEqual(joinNewsByTicker([{ ticker: "005930" }, { ticker: "5930" }], "005930"), [{ ticker: "005930" }]);
+});
+
+test("TOP10 rejects missing metrics, stale ticks, wrong market/session, and unsupported LIVE source", () => {
+  const valid = { ticker: "005930", price: 100, changePercent: 1, volume: 10, turnover: 1000, eventAt: "2026-10-25T08:00:00Z", receivedAt: "2026-10-25T08:00:00Z", sessionCode: "3", market: "NXT", liveVerified: true, source: "KIS WebSocket H0NXCNT0" };
+  const now = Date.parse("2026-10-25T08:00:01Z");
+  const universe = { status: "VERIFIED", asOf: "2026-10-25", items: [{ ticker: "005930", name: "삼성전자" }] };
+  const opts = { now, changePercentBasisVerified: true, turnoverBasisVerified: true };
+  assert.equal(buildNxtTop10([{ ...valid, volume: undefined }], universe, opts).length, 0);
+  assert.equal(buildNxtTop10([{ ...valid, turnover: undefined }], universe, opts).length, 0);
+  assert.equal(buildNxtTop10([{ ...valid, eventAt: "2026-10-25T07:00:00Z" }], universe, opts).length, 0);
+  assert.equal(buildNxtTop10([{ ...valid, market: "KRX" }], universe, opts).length, 0);
+  const unsupported = buildNxtTop10([{ ...valid, source: "mock fixture" }], universe, opts);
+  assert.deepEqual(unsupported, []);
 });

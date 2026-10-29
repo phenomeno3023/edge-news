@@ -15,7 +15,7 @@ test("EDGE NXT view coexists with the legacy news screen and keeps the old URL",
   assert.match(html, /id="search"/);
   assert.match(html, /id="grade"/);
   assert.match(html, /id="category"/);
-  assert.match(html, /edge-nxt-step26-20261028/);
+  assert.match(html, /edge-nxt-step31-20261029/);
   assert.match(html, /id="nxt-lookup-form"/);
   assert.match(html, /id="nxt-detail"/);
   assert.match(html, /id="nxt-demo-toggle"/);
@@ -49,13 +49,14 @@ test("NXT view does not invoke Android install prompts and treats absent data as
   assert.match(manifest, /"display": "standalone"/);
   assert.match(manifest, /"purpose": "maskable"/);
   assert.match(manifest, /edge-nxt-maskable-512\.png/);
-  assert.match(serviceWorker, /edge-nxt-step26-20261028/);
+  assert.match(serviceWorker, /edge-nxt-step31-20261029/);
   assert.match(serviceWorker, /demo-nxt\.js/);
   assert.match(nxt, /DEMO · 가상 화면 예시이며 실제 NXT 시세·순위가 아닙니다/);
   assert.match(nxt, /시세 기준 시각 없음/);
   assert.match(serviceWorker, /edge-nxt-maskable-512\.png/);
-  assert.match(html, /edge-nxt-step26-20261028/);
+  assert.match(html, /edge-nxt-step31-20261029/);
   assert.match(app, /예약 이벤트 미확인/);
+  assert.match(app, /오전 수집 공백 · 수동 복구 필요/);
   assert.match(serviceWorker, /data\/nxt\.json/);
   assert.match(css, /@media\(max-width:650px\).*nxt-list/s);
   assert.match(css, /@media\(max-width:650px\)\{\.nxt-heading\{flex-direction:column/);

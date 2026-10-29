@@ -211,7 +211,11 @@ export function orderNxtTop10(rows) {
       && row.market === "NXT"
       && String(row.sessionCode ?? "") === "3"
       && Number.isFinite(row.changePercent)
-      && Number.isFinite(row.price) && row.price > 0)
+      && Number.isFinite(row.price) && row.price > 0
+      && Number.isFinite(row.volume) && row.volume >= 0
+      && Number.isFinite(row.turnover) && row.turnover >= 0
+      && Number.isFinite(Date.parse(row.eventAt ?? ""))
+      && Number.isFinite(Date.parse(row.receivedAt ?? "")))
     .slice()
     .sort((a, b) => b.changePercent - a.changePercent
       || (Number(b.turnover) || 0) - (Number(a.turnover) || 0)

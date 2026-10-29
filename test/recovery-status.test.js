@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getCollectionRecoveryStatus } from "../src/recovery-status.js";
+import { getMorningCollectionCoverage } from "../src/morning-coverage.js";
 
 const good = (id, started, finished) => ({
   id, status: "ok", started_at: started, collection_started_at: started,
@@ -57,4 +58,52 @@ test("latest recovery reason and actual timing fields are carried through withou
 
 test("invalid evaluation time is rejected", () => {
   assert.throws(() => getCollectionRecoveryStatus([], { now: "bad" }), /valid date/);
+});
+
+const morningRun = (id, kst, status = "ok", json = "generated", extras = {}) => ({
+  id, status, json_status: json, collection_started_at: `${kst}+09:00`,
+  collection_finished_at: `${kst}+09:00`, trigger_type: "schedule", ...extras
+});
+
+test("morning coverage reports six slots and confirms actual run windows without claiming scheduled delivery", () => {
+  const result = getMorningCollectionCoverage([
+    morningRun(1, "2026-10-29T08:00:00"), morningRun(2, "2026-10-29T08:10:00"),
+    morningRun(3, "2026-10-29T08:20:00"), morningRun(4, "2026-10-29T08:30:00"),
+    morningRun(5, "2026-10-29T08:40:00"), morningRun(6, "2026-10-29T08:50:00")
+  ], { now: "2026-10-28T23:55:00Z" });
+  assert.equal(result.slots.length, 6);
+  assert.equal(result.confirmedWindows, 6);
+  assert.equal(result.scheduledEventAbsenceProven, false);
+  assert.equal(result.slots[0].exactScheduledSlotConfirmed, false);
+});
+
+test("after 08:20 with no successful evidence, coverage identifies a gap and then manual recovery need", () => {
+  const earlyOnly = [morningRun(1, "2026-10-29T08:00:00")];
+  assert.equal(getMorningCollectionCoverage(earlyOnly, { now: "2026-10-28T23:25:00Z" }).state, "COLLECTION_GAP_CHECK");
+  const late = getMorningCollectionCoverage(earlyOnly, { now: "2026-10-28T23:40:00Z" });
+  assert.equal(late.state, "MANUAL_RECOVERY_REQUIRED");
+  assert.equal(late.manualRecoveryRequired, true);
+});
+
+test("failed or incomplete runs are not treated as success; absent records do not prove schedule omission", () => {
+  const failed = getMorningCollectionCoverage([
+    morningRun(1, "2026-10-29T08:35:00", "failed", "not_generated")
+  ], { now: "2026-10-28T23:40:00Z" });
+  assert.equal(failed.state, "MANUAL_RECOVERY_REQUIRED");
+  assert.equal(failed.latestAttemptState, "COLLECTION_FAILURE_RECORDED");
+  assert.equal(failed.scheduledEventAbsenceProven, false);
+  assert.match(failed.reason, /not inferred/);
+});
+
+test("a late run is recorded only in its actual window and duplicate run IDs are ignored", () => {
+  const run = morningRun(9, "2026-10-29T08:27:00", "ok", "generated", { scheduled_for: "2026-10-28T23:20:00Z", scheduled_slot_known: 1 });
+  const coverage = getMorningCollectionCoverage([run, run], { now: "2026-10-28T23:40:00Z" });
+  assert.equal(coverage.slots[2].state, "COLLECTION_AND_JSON_CONFIRMED");
+  assert.equal(coverage.slots[2].exactScheduledSlotConfirmed, false);
+  assert.equal(coverage.confirmedWindows, 1);
+});
+
+test("morning sweep is not applicable on weekends or official KRX holidays", () => {
+  assert.equal(getMorningCollectionCoverage([], { now: "2026-10-24T23:40:00Z" }).state, "NOT_APPLICABLE");
+  assert.equal(getMorningCollectionCoverage([], { now: "2026-10-09T23:40:00Z" }).state, "NOT_APPLICABLE");
 });

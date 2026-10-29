@@ -11,6 +11,10 @@ export function buildNxtTop10(ticks, universe, {
   const eligible = new Map(universe.items.map((item) => [item.ticker, item.name]));
   const candidates = (Array.isArray(ticks) ? ticks : []).filter((tick) => {
     if (!eligible.has(tick.ticker) || tick.market !== "NXT" || String(tick.sessionCode) !== "3") return false;
+    if (!Number.isFinite(tick.price) || tick.price <= 0
+      || !Number.isFinite(tick.changePercent)
+      || !Number.isFinite(tick.volume) || tick.volume < 0
+      || !Number.isFinite(tick.turnover) || tick.turnover < 0) return false;
     const eventMs = Date.parse(tick.eventAt ?? "");
     const receiveMs = Date.parse(tick.receivedAt ?? "");
     return Number.isFinite(eventMs) && Number.isFinite(receiveMs)
@@ -18,7 +22,9 @@ export function buildNxtTop10(ticks, universe, {
       && Math.abs(now - receiveMs) <= staleAfterMs;
   }).map((tick) => ({ ...tick,
     company: tick.company || eligible.get(tick.ticker),
-    status: changePercentBasisVerified && turnoverBasisVerified && tick.liveVerified === true ? "LIVE" : "UNVERIFIED",
+    status: changePercentBasisVerified && turnoverBasisVerified
+      && tick.liveVerified === true && tick.source === "KIS WebSocket H0NXCNT0"
+      ? "LIVE" : "UNVERIFIED",
     changePercentBasisVerified,
     turnoverBasisVerified
   }));

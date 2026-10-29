@@ -120,8 +120,8 @@ test("TOP10 only ranks fresh aftermarket ticks in a verified universe with verif
   const now = Date.parse("2026-10-25T11:00:00Z");
   const universe = { status: "VERIFIED", asOf: "2026-10-25", items: [{ ticker: "005930", name: "삼성전자" }, { ticker: "000660", name: "SK하이닉스" }] };
   const ticks = [
-    { ticker: "005930", price: 100, changePercent: 5, turnover: 200, eventAt: new Date(now).toISOString(), receivedAt: new Date(now).toISOString(), sessionCode: "3", market: "NXT", liveVerified: true, source: "KIS WebSocket H0NXCNT0" },
-    { ticker: "000660", price: 200, changePercent: 99, turnover: 999, eventAt: new Date(now).toISOString(), receivedAt: new Date(now).toISOString(), sessionCode: "2", market: "NXT", liveVerified: true, source: "KIS WebSocket H0NXCNT0" }
+    { ticker: "005930", price: 100, changePercent: 5, volume: 1000, turnover: 200, eventAt: new Date(now).toISOString(), receivedAt: new Date(now).toISOString(), sessionCode: "3", market: "NXT", liveVerified: true, source: "KIS WebSocket H0NXCNT0" },
+    { ticker: "000660", price: 200, changePercent: 99, volume: 2000, turnover: 999, eventAt: new Date(now).toISOString(), receivedAt: new Date(now).toISOString(), sessionCode: "2", market: "NXT", liveVerified: true, source: "KIS WebSocket H0NXCNT0" }
   ];
   assert.deepEqual(buildNxtTop10(ticks, { ...universe, status: "UNVERIFIED" }, { now }), []);
   assert.deepEqual(buildNxtTop10(ticks, universe, { now }), []);

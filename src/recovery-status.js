@@ -1,4 +1,5 @@
 import { calendarFor, kstParts } from "./schedule.js";
+import { getMorningCollectionCoverage } from "./morning-coverage.js";
 
 const COMPLETE_COLLECTION = new Set(["ok", "success", "collected"]);
 
@@ -98,6 +99,7 @@ export function getCollectionRecoveryStatus(runs = [], {
     lastSuccessAgeMs: ageMs,
     expectedIntervalMs: intervalMs,
     graceMs,
-    overdue: Boolean(overdue)
+    overdue: Boolean(overdue),
+    morningCoverage: getMorningCollectionCoverage(ordered, { now: actualNow, year, holidays })
   };
 }
