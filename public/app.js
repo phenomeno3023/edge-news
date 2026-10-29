@@ -70,4 +70,4 @@ if(installButton){installButton.hidden=false;installButton.textContent='홈 화�
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();});
 bind(installButton,'click',()=>showInstallHelp());
 bind(installHelpClose,'click',()=>{if(installHelp)installHelp.hidden=true;});
-if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register(new URL('./sw.js?v=edge-news-window-20261023',location.href),{updateViaCache:'none'}).catch(()=>{});
+if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register(new URL('./sw.js?v=edge-news-collection-health-20261029',location.href),{updateViaCache:'none'}).catch(()=>{});
