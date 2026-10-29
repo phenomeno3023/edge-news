@@ -31,6 +31,8 @@ test("current-window running and fully completed runs block duplicate manual rec
   assert.equal(running.state, "RUN_ALREADY_IN_PROGRESS");
   const done = planManualRecovery([completed(3, "2026-10-29T06:00:00Z", "2026-10-29T06:01:00Z", key)], { now });
   assert.equal(done.state, "CURRENT_WINDOW_ALREADY_COMPLETE");
+  const differentWindowRunning = planManualRecovery([{ id: 5, status: "running", dedupe_key: "window:2026-10-29:trading:14:30" }], { now });
+  assert.equal(differentWindowRunning.state, "RUN_ALREADY_IN_PROGRESS");
 });
 
 test("an observed successful collection in the current window does not trigger recovery", () => {

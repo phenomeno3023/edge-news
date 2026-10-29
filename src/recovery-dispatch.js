@@ -25,7 +25,7 @@ export function planManualRecovery(runs = [], { now = new Date(), year, holidays
   const schedule = decideSchedule({ now: actualNow, event: "workflow_dispatch", year, holidays });
   const health = getCollectionRecoveryStatus(runs, { now: actualNow, year, holidays, graceMs });
   const currentWindowRuns = runs.filter((row) => field(row, "dedupe_key", "dedupeKey") === schedule.dedupeKey);
-  const inProgress = currentWindowRuns.some((row) => duplicateRunReason(row) === "in_progress");
+  const inProgress = runs.some((row) => duplicateRunReason(row) === "in_progress");
   const completed = currentWindowRuns.some((row) => duplicateRunReason(row) === "completed");
 
   let state = "NOT_NEEDED";
