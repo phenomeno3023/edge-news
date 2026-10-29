@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
+import { getCollectionRecoveryStatus } from "../src/recovery-status.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dataDir = path.join(root, "public", "data");
@@ -42,6 +43,25 @@ export function selectNewestPair(repositoryPair, livePair) {
   if (JSON.stringify(livePair.news) === JSON.stringify(repositoryPair.news)
     && JSON.stringify(livePair.status) === JSON.stringify(repositoryPair.status)) return livePair;
   throw new Error("snapshot freshness is ambiguous; deployment stopped");
+}
+
+export function addCollectionHealthFromReadOnlyState(snapshot, { databasePath, now = new Date(), year, holidays } = {}) {
+  if (!databasePath || !fs.existsSync(databasePath)) {
+    throw new Error("read-only collection state is unavailable; collection health was not generated");
+  }
+  const db = new DatabaseSync(databasePath, { readOnly: true });
+  try {
+    const rows = db.prepare("SELECT * FROM runs ORDER BY id DESC LIMIT 500").all();
+    if (!rows.length) throw new Error("collection run history is empty; collection health was not generated");
+    const collectionHealth = getCollectionRecoveryStatus(rows, { now, year, holidays });
+    return {
+      news: { ...snapshot.news, collectionHealth },
+      status: { ...snapshot.status, collectionHealth },
+      collectionHealth
+    };
+  } finally {
+    db.close();
+  }
 }
 
 export function assertSnapshotCoversDatabase(snapshot, databasePath) {
@@ -103,12 +123,18 @@ export async function stagePublishedData({ databasePath, requestId = `${Date.now
   const livePair = validateSnapshotPair(news, status, "live Pages snapshot");
   const selected = selectNewestPair(readRepositoryPair(outputDirectory), livePair);
   const database = assertSnapshotCoversDatabase(selected, databasePath);
+  const staged = addCollectionHealthFromReadOnlyState(selected, {
+    databasePath,
+    now: new Date(),
+    year: process.env.KRX_CALENDAR_YEAR,
+    holidays: process.env.KRX_HOLIDAYS
+  });
   fs.mkdirSync(outputDirectory, { recursive: true });
   const suffix = `${process.pid}-${Date.now()}`;
   const newsTemp = path.join(outputDirectory, `.news-${suffix}.tmp`);
   const statusTemp = path.join(outputDirectory, `.status-${suffix}.tmp`);
-  fs.writeFileSync(newsTemp, JSON.stringify(selected.news));
-  fs.writeFileSync(statusTemp, JSON.stringify(selected.status));
+  fs.writeFileSync(newsTemp, JSON.stringify(staged.news));
+  fs.writeFileSync(statusTemp, JSON.stringify(staged.status));
   fs.renameSync(newsTemp, path.join(outputDirectory, "news.json"));
   fs.renameSync(statusTemp, path.join(outputDirectory, "status.json"));
   const summary = {
@@ -119,12 +145,14 @@ export async function stagePublishedData({ databasePath, requestId = `${Date.now
     databaseRunId: database.runId,
     databaseStatus: database.status,
     databaseTime: database.requiredTime,
-    result: "validated; latest snapshot staged for static deployment"
+    collectionHealthState: staged.collectionHealth.state,
+    collectionHealthEvaluatedAt: staged.collectionHealth.evaluatedAt,
+    result: "validated; latest snapshot and current collection-health assessment staged for static deployment"
   };
   console.log(JSON.stringify(summary));
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-      `### Published data preserved for code-only deployment\n\n- Source: ${summary.source}\n- Snapshot time: ${summary.serverTime}\n- Items: ${summary.itemCount}\n- Snapshot run: ${summary.snapshotRunId ?? "unknown"}\n- Latest saved collection: run ${summary.databaseRunId} (${summary.databaseStatus}) at ${summary.databaseTime}\n`);
+      `### Published data preserved for code-only deployment\n\n- Source: ${summary.source}\n- Snapshot time: ${summary.serverTime}\n- Items: ${summary.itemCount}\n- Snapshot run: ${summary.snapshotRunId ?? "unknown"}\n- Latest saved collection: run ${summary.databaseRunId} (${summary.databaseStatus}) at ${summary.databaseTime}\n- Collection health: ${summary.collectionHealthState} evaluated at ${summary.collectionHealthEvaluatedAt}\n`);
   }
   return summary;
 }
