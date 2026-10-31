@@ -1,6 +1,7 @@
 import { calendarFor, kstParts } from "../../../src/schedule.js";
 
 export const WORKER_CRON = "0,2,12,22,32,42,50 * * * *";
+export const UPSTREAM_TIMEOUT_MS = 10_000;
 const DISPATCH_RESERVATION_MS = 48 * 60 * 60 * 1000;
 const GITHUB_API = "https://api.github.com";
 const encoder = new TextEncoder();
@@ -263,10 +264,22 @@ function apiErrorCode(status, headers) {
   return "API_REQUEST_ERROR";
 }
 
+export async function fetchWithTimeout(url, options = {}, fetchImpl = fetch, timeoutMs = UPSTREAM_TIMEOUT_MS) {
+  const signal = AbortSignal.timeout(timeoutMs);
+  try {
+    return await fetchImpl(url, { ...options, signal });
+  } catch (error) {
+    if (signal.aborted || error?.name === "AbortError" || error?.name === "TimeoutError") {
+      throw Object.assign(new Error(), { code: "REQUEST_TIMEOUT" });
+    }
+    throw error;
+  }
+}
+
 async function installationToken(env, fetchImpl = fetch, now = Date.now()) {
   if (!env.GITHUB_APP_INSTALLATION_ID) throw Object.assign(new Error(), { code: "GITHUB_APP_INSTALLATION_ID_MISSING" });
   const jwt = await githubAppJwt(env, now);
-  const response = await fetchImpl(GITHUB_API + "/app/installations/" + encodeURIComponent(env.GITHUB_APP_INSTALLATION_ID) + "/access_tokens", {
+  const response = await fetchWithTimeout(GITHUB_API + "/app/installations/" + encodeURIComponent(env.GITHUB_APP_INSTALLATION_ID) + "/access_tokens", {
     method: "POST",
     headers: {
       authorization: "Bearer " + jwt,
@@ -274,35 +287,35 @@ async function installationToken(env, fetchImpl = fetch, now = Date.now()) {
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      repository_names: [env.GITHUB_REPO || "edge-news"],
+      repositories: [env.GITHUB_REPO || "edge-news"],
       permissions: { actions: "write" }
     })
-  });
+  }, fetchImpl);
   if (!response.ok) throw Object.assign(new Error(), { code: apiErrorCode(response.status, response.headers) });
   const body = await response.json();
   if (!body.token) throw Object.assign(new Error(), { code: "GITHUB_APP_TOKEN_RESPONSE_INVALID" });
   return body.token;
 }
 
-async function apiJson(url, token, fetchImpl = fetch) {
-  const response = await fetchImpl(url, {
+async function apiJson(url, token, fetchImpl = fetch, timeoutMs = UPSTREAM_TIMEOUT_MS) {
+  const response = await fetchWithTimeout(url, {
     headers: {
       authorization: "Bearer " + token,
       accept: "application/vnd.github+json",
       "x-github-api-version": "2022-11-28"
     },
     cache: "no-store"
-  });
+  }, fetchImpl, timeoutMs);
   if (!response.ok) throw Object.assign(new Error(), { code: apiErrorCode(response.status, response.headers), status: response.status });
   return response.json();
 }
 
-async function fetchStatus(url, fetchImpl = fetch) {
+async function fetchStatus(url, fetchImpl = fetch, timeoutMs = UPSTREAM_TIMEOUT_MS) {
   const separator = url.includes("?") ? "&" : "?";
-  const response = await fetchImpl(url + separator + "recovery_check=" + Date.now(), {
+  const response = await fetchWithTimeout(url + separator + "recovery_check=" + Date.now(), {
     headers: { accept: "application/json", "cache-control": "no-cache" },
     cache: "no-store"
-  });
+  }, fetchImpl, timeoutMs);
   if (!response.ok) {
     throw Object.assign(new Error(), {
       code: response.status >= 500 ? "PUBLIC_STATUS_UPSTREAM_ERROR" : "PUBLIC_STATUS_HTTP_ERROR"
@@ -315,13 +328,13 @@ async function fetchStatus(url, fetchImpl = fetch) {
   return payload.collectionHealth;
 }
 
-async function callWorkflowDispatch({ env, token, fetchImpl = fetch }) {
+async function callWorkflowDispatch({ env, token, fetchImpl = fetch, timeoutMs = UPSTREAM_TIMEOUT_MS }) {
   const owner = env.GITHUB_OWNER || "phenomeno3023";
   const repo = env.GITHUB_REPO || "edge-news";
   const workflow = env.GITHUB_WORKFLOW_FILE || "edge-news.yml";
   const ref = env.GITHUB_REF || "main";
   const url = GITHUB_API + "/repos/" + owner + "/" + repo + "/actions/workflows/" + workflow + "/dispatches";
-  const response = await fetchImpl(url, {
+  const response = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       authorization: "Bearer " + token,
@@ -330,7 +343,7 @@ async function callWorkflowDispatch({ env, token, fetchImpl = fetch }) {
       "content-type": "application/json"
     },
     body: JSON.stringify({ ref })
-  });
+  }, fetchImpl, timeoutMs);
   if (![200, 201, 202, 204].includes(response.status)) {
     return { ok: false, code: apiErrorCode(response.status, response.headers), status: response.status };
   }
@@ -363,7 +376,7 @@ export async function runRecoveryCheck({ controller, env, now = new Date(), deps
 
   let health;
   try {
-    health = await (deps.fetchStatus || fetchStatus)(env.PUBLIC_STATUS_URL, deps.fetch || fetch);
+    health = await (deps.fetchStatus || fetchStatus)(env.PUBLIC_STATUS_URL, deps.fetch || fetch, deps.requestTimeoutMs || UPSTREAM_TIMEOUT_MS);
   } catch (error) {
     return { action: "abort", reason: error.code || "PUBLIC_STATUS_ERROR" };
   }
@@ -382,7 +395,7 @@ export async function runRecoveryCheck({ controller, env, now = new Date(), deps
   const listUrl = GITHUB_API + "/repos/" + owner + "/" + repo + "/actions/runs?branch=main&per_page=30";
   let runs;
   try {
-    const payload = await (deps.listRuns || ((url, apiToken) => apiJson(url, apiToken, deps.fetch || fetch)))(listUrl, token);
+    const payload = await (deps.listRuns || ((url, apiToken) => apiJson(url, apiToken, deps.fetch || fetch, deps.requestTimeoutMs || UPSTREAM_TIMEOUT_MS)))(listUrl, token);
     runs = Array.isArray(payload) ? payload : payload.workflow_runs;
     if (!Array.isArray(runs)) throw Object.assign(new Error(), { code: "GITHUB_API_RESPONSE_INVALID" });
   } catch (error) {
@@ -398,7 +411,7 @@ export async function runRecoveryCheck({ controller, env, now = new Date(), deps
     const repoName = env.GITHUB_REPO || "edge-news";
     try {
       const getJobs = deps.getRunJobs || ((runId, apiToken) =>
-        apiJson(GITHUB_API + "/repos/" + ownerName + "/" + repoName + "/actions/runs/" + runId + "/jobs?per_page=100", apiToken, deps.fetch || fetch));
+        apiJson(GITHUB_API + "/repos/" + ownerName + "/" + repoName + "/actions/runs/" + runId + "/jobs?per_page=100", apiToken, deps.fetch || fetch, deps.requestTimeoutMs || UPSTREAM_TIMEOUT_MS));
       jobsByRun[completed.id] = await getJobs(completed.id, token);
     } catch (error) {
       return { action: "abort", reason: error.code || "GITHUB_JOB_STATUS_ERROR" };
@@ -424,13 +437,14 @@ export async function runRecoveryCheck({ controller, env, now = new Date(), deps
 
   const dispatch = deps.dispatch || ((options) => callWorkflowDispatch({
     ...options,
-    fetchImpl: deps.fetch || fetch
+    fetchImpl: deps.fetch || fetch,
+    timeoutMs: deps.requestTimeoutMs || UPSTREAM_TIMEOUT_MS
   }));
   let result;
   try {
     result = await dispatch({ env, token });
-  } catch {
-    return { action: "abort", reason: "DISPATCH_NETWORK_ERROR", targetKey: key };
+  } catch (error) {
+    return { action: "abort", reason: error.code || "DISPATCH_NETWORK_ERROR", targetKey: key };
   }
   if (!result.ok) {
     return { action: "abort", reason: result.code, httpStatus: result.status, targetKey: key };
@@ -480,6 +494,10 @@ export class DispatchGuard {
 
 export default {
   async scheduled(controller, env) {
+    if (env.RECOVERY_ENABLED !== "true") {
+      console.log(JSON.stringify({ action: "skip", reason: "recovery_disabled" }));
+      return;
+    }
     const result = await runRecoveryCheck({ controller, env });
     console.log(JSON.stringify({
       action: result.action,

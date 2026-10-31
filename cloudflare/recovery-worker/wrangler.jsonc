@@ -16,6 +16,7 @@
     { "tag": "v1", "new_sqlite_classes": ["DispatchGuard"] }
   ],
   "vars": {
+    "RECOVERY_ENABLED": "false",
     "GITHUB_OWNER": "phenomeno3023",
     "GITHUB_REPO": "edge-news",
     "GITHUB_WORKFLOW_FILE": "edge-news.yml",

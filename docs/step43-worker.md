@@ -23,17 +23,19 @@ state branch, Pages site, and collection schedule are unchanged.
    If the invocation arrives in a different window, stop without inventing an
    old GitHub Actions slot.
 4. Read public `status.json` and require `collectionHealth`; read the latest
-   main-branch Actions runs. A failed request, malformed response, auth error,
-   rate limit, or upstream error fails closed.
+   main-branch Actions runs. Each external fetch has a 10-second timeout. A
+   failed request, malformed response, timeout, auth error, rate limit, or
+   upstream error fails closed.
 5. Skip if same-window collection and publication succeeded, or if an Actions
    run for that window is requested, queued, waiting, pending, or running.
 6. If evidence of completion is incomplete, check the successful run's job
    steps. Only successful collection and compact-state persistence suppress
    recovery when health JSON is incomplete.
 7. Claim the window atomically in a Durable Object before requesting
-   `workflow_dispatch`. The 48-hour reservation prevents concurrent duplicate
-   Worker calls. An uncertain dispatch response is not blindly retried; a later
-   window rechecks GitHub and public health.
+   `workflow_dispatch`. The 48-hour expiry retains the claim for the same
+   date/window key, so a failed or uncertain request cannot be retried in that
+   same window. A later collection window has a different key and can recover
+   independently after rechecking GitHub and public health.
 
 The Worker does not prove that a GitHub schedule event was omitted. It only
 requests the existing workflow when public status and Actions API evidence show
@@ -57,18 +59,30 @@ they are used only for the dispatch claim. See the official docs:
 - https://developers.cloudflare.com/workers/configuration/cron-triggers/
 - https://developers.cloudflare.com/durable-objects/platform/pricing/
 
-The local Node test timings are not Cloudflare CPU measurements. Actual CPU
-against the 10 ms Cron limit, deployed quota use, scheduled-event punctuality,
-and end-to-end recovery remain UNVERIFIED until an approved isolated deployment
-and operational observation.
+Wrangler 4.156.0 `deploy --dry-run` successfully bundled the Worker and listed
+the SQLite Durable Object binding without uploading. This validates the local
+configuration and bundle only. Local Node test timings are not Cloudflare CPU
+measurements. Actual CPU against the 10 ms Cron limit, deployed quota use,
+scheduled-event punctuality, and end-to-end recovery remain UNVERIFIED until an
+approved isolated deployment and operational observation.
 
 ## Authentication design (not configured)
 
+`RECOVERY_ENABLED` is set to `false` in the deployment configuration. A first
+deployment therefore remains inert. Change it to `true` only after the
+approved connection and staged verification are complete.
+
 Required future configuration:
 
-- Secret: `GITHUB_APP_PRIVATE_KEY`
+- Secret: `GITHUB_APP_PRIVATE_KEY` (PEM, stored as a Cloudflare Secret)
 - Non-secret vars: `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`
+- Existing Wrangler vars: `GITHUB_OWNER`, `GITHUB_REPO`,
+  `GITHUB_WORKFLOW_FILE`, `GITHUB_REF`, `PUBLIC_STATUS_URL`
+- Optional future-calendar vars: `KRX_CALENDAR_YEAR`, `KRX_HOLIDAYS`, and
+  `KRX_CALENDAR_VERIFIED_YEAR`; the 2026 bundled calendar does not need them.
 - Repository scope: installation restricted to `phenomeno3023/edge-news`
+- Installation access token request narrows access again to
+  `repositories: ["edge-news"]` and `permissions: { actions: "write" }`.
 - GitHub App repository permission: `Actions: write`, required for
   `workflow_dispatch`; GET run/job access is covered by that permission.
 - Target: existing `edge-news.yml`, ref `main`.
@@ -93,6 +107,7 @@ npm test
 
 Tests use only mock fetch functions and generated disposable RSA test keys. They
 do not call GitHub, Cloudflare, the live status JSON, or `workflow_dispatch`.
+The separate deployment dry-run bundles locally and performs no upload.
 
 ## Deployment gate
 

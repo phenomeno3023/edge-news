@@ -3,11 +3,14 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import {
   DispatchGuard,
+  UPSTREAM_TIMEOUT_MS,
   WORKER_CRON,
   assessTrigger,
+  fetchWithTimeout,
   recoveryDecision,
   runRecoveryCheck
 } from "../cloudflare/recovery-worker/src/index.js";
+import recoveryWorker from "../cloudflare/recovery-worker/src/index.js";
 
 const kst = (isoUtc) => new Date(isoUtc);
 const controller = (isoUtc) => ({ cron: WORKER_CRON, scheduledTime: kst(isoUtc).getTime() });
@@ -213,6 +216,20 @@ test("missing current-window evidence dispatches only after both sources are che
   assert.equal(calls, 1);
 });
 
+test("scheduled Worker remains inert until the explicit recovery flag is enabled", async () => {
+  const originalLog = console.log;
+  let entry;
+  console.log = (value) => { entry = JSON.parse(value); };
+  try {
+    await recoveryWorker.scheduled(controller("2026-11-02T00:02:00.000Z"), {
+      RECOVERY_ENABLED: "false"
+    });
+  } finally {
+    console.log = originalLog;
+  }
+  assert.deepEqual(entry, { action: "skip", reason: "recovery_disabled" });
+});
+
 test("public JSON failure fails closed before token or dispatch", async () => {
   let tokenCalls = 0;
   let dispatchCalls = 0;
@@ -265,6 +282,35 @@ test("auth failure is distinguished from rate limiting without leaking details",
   assert.equal(JSON.stringify(result).includes("secret-token"), false);
 });
 
+test("upstream requests use a bounded timeout and map aborts to a safe reason", async () => {
+  assert.equal(UPSTREAM_TIMEOUT_MS, 10_000);
+  await assert.rejects(
+    fetchWithTimeout("https://api.github.com/test", {}, (_url, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener("abort", () => reject(Object.assign(new Error("private"), { name: "AbortError" })), { once: true });
+    }), 5),
+    (error) => error.code === "REQUEST_TIMEOUT" && !error.message
+  );
+
+  let dispatchCalls = 0;
+  const result = await runRecoveryCheck({
+    controller: controller("2026-11-02T00:02:00.000Z"),
+    env: {},
+    now: kst("2026-11-02T00:02:05.000Z"),
+    deps: deps({
+      listRuns: undefined,
+      requestTimeoutMs: 5,
+      fetch: (_url, { signal }) => new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(Object.assign(new Error("private"), { name: "AbortError" })), { once: true });
+      }),
+      dispatch: async () => { dispatchCalls += 1; return { ok: true, status: 204 }; }
+    })
+  });
+  assert.equal(result.action, "abort");
+  assert.equal(result.reason, "REQUEST_TIMEOUT");
+  assert.equal(dispatchCalls, 0);
+  assert.equal(JSON.stringify(result).includes("private"), false);
+});
+
 test("duplicate Worker invocation is blocked by the atomic claim before dispatch", async () => {
   const claims = new Set();
   let dispatchCalls = 0;
@@ -288,6 +334,37 @@ test("duplicate Worker invocation is blocked by the atomic claim before dispatch
   assert.equal(dispatchCalls, 1);
   assert.equal(results.filter((item) => item.action === "dispatch_requested").length, 1);
   assert.equal(results.filter((item) => item.reason === "duplicate_worker_invocation_already_claimed").length, 1);
+});
+
+test("a failed dispatch lock blocks only its window and the next window can retry", async () => {
+  const claims = new Set();
+  let dispatchCalls = 0;
+  const shared = deps({
+    claim: async (key) => {
+      if (claims.has(key)) return false;
+      claims.add(key);
+      return true;
+    },
+    dispatch: async () => {
+      dispatchCalls += 1;
+      return dispatchCalls === 1
+        ? { ok: false, code: "UPSTREAM_ERROR", status: 503 }
+        : { ok: true, status: 204 };
+    }
+  });
+  const run = (scheduled, now) => runRecoveryCheck({
+    controller: controller(scheduled), env: {}, now: kst(now), deps: shared
+  });
+
+  const first = await run("2026-11-02T00:02:00.000Z", "2026-11-02T00:02:05.000Z");
+  const sameWindow = await run("2026-11-02T00:02:00.000Z", "2026-11-02T00:02:10.000Z");
+  const nextWindow = await run("2026-11-02T00:32:00.000Z", "2026-11-02T00:32:05.000Z");
+
+  assert.equal(first.reason, "UPSTREAM_ERROR");
+  assert.equal(sameWindow.reason, "duplicate_worker_invocation_already_claimed");
+  assert.equal(nextWindow.action, "dispatch_requested");
+  assert.equal(dispatchCalls, 2);
+  assert.equal(claims.size, 2);
 });
 
 test("Durable Object claim serializes duplicate window reservations", async () => {
@@ -364,7 +441,12 @@ test("GitHub App PKCS1 key can mint a short-lived test JWT without any network c
     deps: deps({
       token: undefined,
       fetch: async (url, options) => {
-        tokenCalls.push({ url, method: options.method, authorization: options.headers.authorization });
+        tokenCalls.push({
+          url,
+          method: options.method,
+          authorization: options.headers.authorization,
+          body: JSON.parse(options.body)
+        });
         if (String(url).includes("/app/installations/")) {
           return new Response(JSON.stringify({ token: "ephemeral-test-token" }), {
             status: 201,
@@ -381,5 +463,9 @@ test("GitHub App PKCS1 key can mint a short-lived test JWT without any network c
   assert.equal(result.action, "dispatch_requested");
   assert.equal(tokenCalls.length, 1);
   assert.match(tokenCalls[0].authorization, /^Bearer [^.]+\.[^.]+\.[^.]+$/);
+  assert.deepEqual(tokenCalls[0].body, {
+    repositories: ["edge-news"],
+    permissions: { actions: "write" }
+  });
   assert.equal(JSON.stringify(result).includes("ephemeral-test-token"), false);
 });
