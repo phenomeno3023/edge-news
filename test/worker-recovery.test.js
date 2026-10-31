@@ -234,6 +234,47 @@ test("dry-run mode checks recovery evidence without claiming or dispatching", as
   assert.equal(dispatches, 0);
 });
 
+test("dry-run requests a repository-scoped Actions read token", async () => {
+  const { privateKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    privateKeyEncoding: { type: "pkcs1", format: "pem" },
+    publicKeyEncoding: { type: "spki", format: "pem" }
+  });
+  const tokenRequests = [];
+  let claims = 0;
+  let dispatches = 0;
+  const result = await runRecoveryCheck({
+    controller: controller("2026-11-01T23:22:00.000Z"),
+    env: {
+      GITHUB_APP_ID: "12345",
+      GITHUB_APP_INSTALLATION_ID: "67890",
+      GITHUB_APP_PRIVATE_KEY: privateKey,
+      GITHUB_REPO: "edge-news"
+    },
+    now: kst("2026-11-01T23:22:05.000Z"),
+    dryRun: true,
+    deps: deps({
+      token: undefined,
+      fetch: async (url, options) => {
+        tokenRequests.push({ url: String(url), body: JSON.parse(options.body) });
+        return new Response(JSON.stringify({ token: "ephemeral-read-token" }), {
+          status: 201,
+          headers: { "content-type": "application/json" }
+        });
+      },
+      claim: async () => { claims += 1; return true; },
+      dispatch: async () => { dispatches += 1; return { ok: true, status: 204 }; }
+    })
+  });
+  assert.equal(result.action, "dry_run_would_dispatch");
+  assert.deepEqual(tokenRequests[0].body, {
+    repositories: ["edge-news"],
+    permissions: { actions: "read" }
+  });
+  assert.equal(claims, 0);
+  assert.equal(dispatches, 0);
+});
+
 test("scheduled Worker remains inert until the explicit recovery flag is enabled", async () => {
   const originalLog = console.log;
   let entry;

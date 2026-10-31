@@ -276,7 +276,7 @@ export async function fetchWithTimeout(url, options = {}, fetchImpl = fetch, tim
   }
 }
 
-async function installationToken(env, fetchImpl = fetch, now = Date.now()) {
+async function installationToken(env, fetchImpl = fetch, now = Date.now(), actionsPermission = "write") {
   if (!env.GITHUB_APP_INSTALLATION_ID) throw Object.assign(new Error(), { code: "GITHUB_APP_INSTALLATION_ID_MISSING" });
   const jwt = await githubAppJwt(env, now);
   const response = await fetchWithTimeout(GITHUB_API + "/app/installations/" + encodeURIComponent(env.GITHUB_APP_INSTALLATION_ID) + "/access_tokens", {
@@ -288,7 +288,7 @@ async function installationToken(env, fetchImpl = fetch, now = Date.now()) {
     },
     body: JSON.stringify({
       repositories: [env.GITHUB_REPO || "edge-news"],
-      permissions: { actions: "write" }
+      permissions: { actions: actionsPermission }
     })
   }, fetchImpl);
   if (!response.ok) throw Object.assign(new Error(), { code: apiErrorCode(response.status, response.headers) });
@@ -385,7 +385,7 @@ export async function runRecoveryCheck({ controller, env, now = new Date(), deps
   try {
     token = deps.token
       ? await deps.token(env, actual.getTime())
-      : await installationToken(env, deps.fetch || fetch, actual.getTime());
+      : await installationToken(env, deps.fetch || fetch, actual.getTime(), dryRun ? "read" : "write");
   } catch (error) {
     return { action: "abort", reason: error.code || "AUTHENTICATION_SETUP_ERROR" };
   }
