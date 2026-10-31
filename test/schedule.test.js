@@ -11,7 +11,7 @@ test("normal 08:20 sweep is allowed without inventing an original slot", () => {
   assert.equal(d.scheduledFor, null);
   assert.equal(d.originalSlotKnown, false);
   assert.equal(d.cadence, "morning-10m");
-  assert.match(d.reason, /exact original cron slot is unavailable/);
+  assert.match(d.reason, /exact scheduled slot is unavailable/);
 });
 
 test("08:20 event delayed to 08:27 is collected but not credited to an inferred slot", () => {
@@ -25,7 +25,7 @@ test("08:20 event delayed to 08:27 is collected but not credited to an inferred 
 test("08:20 event delayed to 10:05 is safely recovered in current trading window", () => {
   const d = decideSchedule({ now: new Date("2026-10-26T01:05:00Z"), cron: SCHEDULE_CRONS.tenMinute, ...cal });
   assert.equal(d.run, true);
-  assert.equal(d.cadence, "delayed-recovery");
+  assert.equal(d.cadence, "trading-day-30m");
   assert.equal(d.scheduledFor, null);
   assert.equal(d.dedupeKey, "window:2026-10-26:trading:10:00");
 });
@@ -39,7 +39,7 @@ test("explicit original slot is retained but late recovery is not retroactive", 
   assert.equal(d.scheduledFor, "2026-10-25T23:20:00.000Z");
   assert.equal(d.originalSlotKnown, true);
   assert.equal(d.slotDelayMs, 105 * 60_000);
-  assert.match(d.reason, /not retroactive success/);
+  assert.match(d.reason, /not retroactively credited/);
 });
 
 test("delayed morning recovery shares the active KST window key with a daytime cron", () => {
@@ -48,13 +48,58 @@ test("delayed morning recovery shares the active KST window key with a daytime c
   assert.equal(delayed.dedupeKey, scheduled.dedupeKey);
 });
 
-test("same delayed morning recovery bucket is idempotent and explicit distinct slots stay distinct", () => {
+test("same delayed recovery bucket is idempotent even when stale events report different original slots", () => {
   const a = decideSchedule({ now: "2026-10-26T01:05:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal });
   const b = decideSchedule({ now: "2026-10-26T01:08:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal });
   assert.equal(a.dedupeKey, b.dedupeKey);
   const slotA = decideSchedule({ now: "2026-10-26T01:08:00Z", cron: SCHEDULE_CRONS.tenMinute, scheduledAt: "2026-10-25T23:20:00Z", ...cal });
   const slotB = decideSchedule({ now: "2026-10-26T01:08:00Z", cron: SCHEDULE_CRONS.tenMinute, scheduledAt: "2026-10-25T23:30:00Z", ...cal });
-  assert.notEqual(slotA.dedupeKey, slotB.dedupeKey);
+  assert.equal(slotA.dedupeKey, slotB.dedupeKey);
+  assert.equal(slotA.timingStatus, "DELAYED_TO_CURRENT_WINDOW");
+});
+
+test("schedule timing is explicit when exact slot evidence exists and unknown otherwise", () => {
+  const onTime = decideSchedule({
+    now: "2026-10-25T23:20:30Z", cron: SCHEDULE_CRONS.tenMinute,
+    scheduledAt: "2026-10-25T23:20:00Z", ...cal
+  });
+  const lateSameWindow = decideSchedule({
+    now: "2026-10-25T23:27:00Z", cron: SCHEDULE_CRONS.tenMinute,
+    scheduledAt: "2026-10-25T23:20:00Z", ...cal
+  });
+  const unknown = decideSchedule({ now: "2026-10-25T23:27:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal });
+  assert.equal(onTime.timingStatus, "ON_TIME_OR_WITHIN_WINDOW");
+  assert.equal(lateSameWindow.timingStatus, "DELAYED_TO_CURRENT_WINDOW");
+  assert.equal(unknown.timingStatus, "SLOT_UNKNOWN");
+  assert.equal(unknown.scheduledFor, null);
+});
+
+test("explicit schedule metadata mismatch is skipped with an auditable reason", () => {
+  const d = decideSchedule({
+    now: "2026-10-26T01:05:00Z", cron: SCHEDULE_CRONS.tenMinute,
+    scheduledAt: "2026-10-26T01:00:00Z", ...cal
+  });
+  assert.equal(d.run, false);
+  assert.equal(d.timingStatus, "SCHEDULE_METADATA_MISMATCH");
+  assert.match(d.reason, /does not match the cron expression/);
+});
+
+test("a known cron slot outside policy can recover only into the current active window", () => {
+  const recovered = decideSchedule({
+    now: "2026-10-27T00:10:00Z", cron: SCHEDULE_CRONS.hourly,
+    scheduledAt: "2026-10-26T16:00:00Z", ...cal
+  });
+  const outside = decideSchedule({
+    now: "2026-10-27T12:00:00Z", cron: SCHEDULE_CRONS.hourly,
+    scheduledAt: "2026-10-26T16:00:00Z", ...cal
+  });
+  assert.equal(recovered.run, true);
+  assert.equal(recovered.timingStatus, "SCHEDULE_SLOT_OUTSIDE_POLICY");
+  assert.equal(recovered.cadence, "delayed-recovery");
+  assert.equal(recovered.scheduledFor, "2026-10-26T16:00:00.000Z");
+  assert.equal(recovered.dedupeKey, "window:2026-10-27:trading:09:00");
+  assert.equal(outside.run, false);
+  assert.equal(outside.timingStatus, "SCHEDULE_SLOT_OUTSIDE_POLICY");
 });
 
 test("weekday thirty-minute and final 20:00 schedule retain their policies", () => {
@@ -102,6 +147,8 @@ test("early overlap waits for the confirmed boundary; delayed overlap uses the a
   const delayedOverlap = decideSchedule({ now: "2026-10-27T07:05:00Z", cron: SCHEDULE_CRONS.hourly, ...cal });
   assert.equal(earlyOverlap.run, false);
   assert.equal(earlyOverlap.cadence, "deferred-early-start");
+  assert.equal(earlyOverlap.timingStatus, "SLOT_UNKNOWN");
+  assert.equal(earlyOverlap.eligibilityStatus, "DEFERRED_UNTIL_BOUNDARY");
   assert.equal(earlyOverlap.waitUntil, "2026-10-27T07:00:00.000Z");
   assert.equal(earlyOverlap.scheduledFor, null);
   assert.equal(earlyOverlap.originalSlotKnown, false);
@@ -133,7 +180,7 @@ test("early event shortly before the morning window waits; earlier events are sa
   });
   assert.equal(tooEarly.run, false);
   assert.equal(tooEarly.waitUntil, undefined);
-  assert.match(tooEarly.reason, /outside an active weekday collection window/);
+  assert.match(tooEarly.reason, /outside the configured collection windows/);
 });
 
 test("different cron expressions resolving to the same current window share an idempotency key", () => {
@@ -147,7 +194,7 @@ test("different cron expressions resolving to the same current window share an i
 test("weekday 20:01 late morning event is blocked", () => {
   const d = decideSchedule({ now: "2026-10-26T11:01:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal });
   assert.equal(d.run, false);
-  assert.match(d.reason, /after 20:00 is blocked/);
+  assert.match(d.reason, /outside the configured collection windows/);
 });
 
 test("weekends and official holidays use one hourly key even when another cron overlaps", () => {
@@ -161,7 +208,12 @@ test("weekends and official holidays use one hourly key even when another cron o
     assert.equal(overlappingSweep.dedupeKey, hourly.dedupeKey);
   }
   assert.equal(decideSchedule({ now: "2026-10-24T23:06:00Z", cron: SCHEDULE_CRONS.hourly, ...cal }).run, true);
-  assert.equal(decideSchedule({ now: "2026-10-24T23:06:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal }).run, false);
+  const delayedNonHourly = decideSchedule({ now: "2026-10-24T23:06:00Z", cron: SCHEDULE_CRONS.tenMinute, ...cal });
+  assert.equal(delayedNonHourly.run, true);
+  assert.equal(delayedNonHourly.cadence, "holiday-hourly");
+  assert.equal(delayedNonHourly.dedupeKey, "window:2026-10-25:holiday:08");
+  assert.equal(delayedNonHourly.scheduledFor, null);
+  assert.equal(delayedNonHourly.timingStatus, "SLOT_UNKNOWN");
   assert.equal(decideSchedule({ now: "2026-10-26T00:06:00Z", cron: SCHEDULE_CRONS.hourly, ...cal }).run, true);
 });
 

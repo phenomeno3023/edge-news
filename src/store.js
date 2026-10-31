@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS runs (
  trigger_type TEXT NOT NULL DEFAULT 'local', scheduled_for TEXT,
  workflow_run_started_at TEXT, github_run_id TEXT, github_run_attempt INTEGER,
  restore_status TEXT NOT NULL DEFAULT 'not_applicable',
- calendar_status TEXT NOT NULL DEFAULT 'unverified', schedule_mode TEXT NOT NULL DEFAULT 'unknown',
+ calendar_status TEXT NOT NULL DEFAULT 'unverified', schedule_mode TEXT NOT NULL DEFAULT 'unknown', schedule_timing_status TEXT NOT NULL DEFAULT 'unknown',
  cron_expression TEXT, decision_at TEXT, decision_reason TEXT, scheduled_slot_known INTEGER NOT NULL DEFAULT 0,
  slot_delay_ms INTEGER, dedupe_key TEXT, collection_started_at TEXT, collection_finished_at TEXT, json_generated_at TEXT,
  json_status TEXT NOT NULL DEFAULT 'not_generated', deployment_status TEXT NOT NULL DEFAULT 'not_started', error_code TEXT
@@ -41,7 +41,7 @@ for(const [name,definition] of [
  ['trigger_type',"TEXT NOT NULL DEFAULT 'local'"],['scheduled_for','TEXT'],
  ['workflow_run_started_at','TEXT'],['github_run_id','TEXT'],['github_run_attempt','INTEGER'],
  ['restore_status',"TEXT NOT NULL DEFAULT 'not_applicable'"],
- ['calendar_status',"TEXT NOT NULL DEFAULT 'unverified'"],['schedule_mode',"TEXT NOT NULL DEFAULT 'unknown'"],
+ ['calendar_status',"TEXT NOT NULL DEFAULT 'unverified'"],['schedule_mode',"TEXT NOT NULL DEFAULT 'unknown'"],['schedule_timing_status',"TEXT NOT NULL DEFAULT 'unknown'"],
  ['cron_expression','TEXT'],['decision_at','TEXT'],['decision_reason','TEXT'],['scheduled_slot_known','INTEGER NOT NULL DEFAULT 0'],
  ['slot_delay_ms','INTEGER'],['dedupe_key','TEXT'],['collection_started_at','TEXT'],['collection_finished_at','TEXT'],['json_generated_at','TEXT'],
  ['json_status',"TEXT NOT NULL DEFAULT 'not_generated'"],['deployment_status',"TEXT NOT NULL DEFAULT 'not_started'"],['deployment_finished_at','TEXT'],['error_code','TEXT']

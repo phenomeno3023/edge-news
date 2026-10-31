@@ -14,6 +14,11 @@ function pipelineCollectionSucceeded(row) {
   return COMPLETE_COLLECTION.has(status) && ["generated", "success", "ok"].includes(json);
 }
 
+function publicationSucceeded(row) {
+  return String(field(row, "deployment_status", "deploymentStatus") || "").toLowerCase() === "success"
+    && Boolean(field(row, "deployment_finished_at", "deploymentFinishedAt"));
+}
+
 function cadenceAt(now, calendarOptions) {
   const calendar = calendarFor(now, calendarOptions);
   const p = kstParts(now);
@@ -46,6 +51,7 @@ export function getCollectionRecoveryStatus(runs = [], {
   });
   const latestAttempt = ordered[0] || null;
   const lastSuccess = ordered.find(pipelineCollectionSucceeded) || null;
+  const lastPublication = ordered.find(publicationSucceeded) || null;
   const latestAttemptAt = field(latestAttempt, "collection_started_at", "collectionStartedAt", "started_at", "startedAt");
   const lastSuccessAt = field(lastSuccess, "collection_finished_at", "collectionFinishedAt", "finished_at", "finishedAt");
   const latestStatus = String(field(latestAttempt, "status") || "unknown").toLowerCase();
@@ -89,12 +95,17 @@ export function getCollectionRecoveryStatus(runs = [], {
     eventEvidence,
     lastSuccessfulCollectionAt: lastSuccessAt || null,
     lastSuccessfulRunId: lastSuccess ? field(lastSuccess, "id") : null,
+    lastSuccessfulPublicationAt: lastPublication ? field(lastPublication, "deployment_finished_at", "deploymentFinishedAt") : null,
+    lastSuccessfulPublicationRunId: lastPublication ? field(lastPublication, "id") : null,
     latestAttemptAt: latestAttemptAt || null,
     latestAttemptRunId: latestAttempt ? field(latestAttempt, "id") : null,
     latestAttemptStatus: latestAttempt ? field(latestAttempt, "status") || "unknown" : null,
+    latestAttemptJsonStatus: latestAttempt ? field(latestAttempt, "json_status", "jsonStatus") || "unknown" : null,
+    latestAttemptPublicationStatus: latestAttempt ? field(latestAttempt, "deployment_status", "deploymentStatus") || "unknown" : null,
     latestAttemptTrigger: trigger || null,
     latestAttemptScheduledFor: field(latestAttempt, "scheduled_for", "scheduledFor") || null,
     latestAttemptOriginalSlotKnown: Boolean(field(latestAttempt, "scheduled_slot_known", "scheduledSlotKnown")),
+    latestAttemptTimingStatus: field(latestAttempt, "schedule_timing_status", "scheduleTimingStatus") || "UNVERIFIED",
     latestAttemptReason: decisionReason || null,
     lastSuccessAgeMs: ageMs,
     expectedIntervalMs: intervalMs,

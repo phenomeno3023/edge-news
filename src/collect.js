@@ -39,6 +39,7 @@ const workflowStartedAt=process.env.EDGE_ACTIONS_STARTED_AT||null;
 const scheduledFor=process.env.EDGE_ACTIONS_SCHEDULED_FOR||null;
 const calendarStatus=process.env.EDGE_KRX_CALENDAR_STATUS||'unverified';
 const scheduleMode=process.env.EDGE_SCHEDULE_MODE||'unknown';
+const scheduleTimingStatus=process.env.EDGE_ACTIONS_SCHEDULE_TIMING_STATUS||'unknown';
 const cronExpression=process.env.EDGE_ACTIONS_CRON||process.env.EDGE_ACTIONS_SCHEDULE||null;
 const decisionAt=process.env.EDGE_ACTIONS_DECISION_AT||workflowStartedAt||actualStartedAt;
 const decisionReason=process.env.EDGE_ACTIONS_DECISION_REASON||'not_recorded';
@@ -57,8 +58,8 @@ if(dedupeKey){
  }
 }
 const collectionStartedAt=actualStartedAt;
-const run=db.prepare(`INSERT INTO runs(started_at,collection_started_at,status,trigger_type,scheduled_for,workflow_run_started_at,github_run_id,github_run_attempt,restore_status,calendar_status,schedule_mode,cron_expression,decision_at,decision_reason,scheduled_slot_known,slot_delay_ms,dedupe_key)
- VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(actualStartedAt,collectionStartedAt,'running',triggerType,scheduledFor,workflowStartedAt,process.env.EDGE_ACTIONS_RUN_ID||null,Number(process.env.EDGE_ACTIONS_RUN_ATTEMPT)||null,process.env.EDGE_RESTORE_STATUS||'not_applicable',calendarStatus,scheduleMode,cronExpression,decisionAt,decisionReason,scheduledSlotKnown?1:0,slotDelayMs,dedupeKey).lastInsertRowid;
+const run=db.prepare(`INSERT INTO runs(started_at,collection_started_at,status,trigger_type,scheduled_for,workflow_run_started_at,github_run_id,github_run_attempt,restore_status,calendar_status,schedule_mode,schedule_timing_status,cron_expression,decision_at,decision_reason,scheduled_slot_known,slot_delay_ms,dedupe_key)
+ VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(actualStartedAt,collectionStartedAt,'running',triggerType,scheduledFor,workflowStartedAt,process.env.EDGE_ACTIONS_RUN_ID||null,Number(process.env.EDGE_ACTIONS_RUN_ATTEMPT)||null,process.env.EDGE_RESTORE_STATUS||'not_applicable',calendarStatus,scheduleMode,scheduleTimingStatus,cronExpression,decisionAt,decisionReason,scheduledSlotKnown?1:0,slotDelayMs,dedupeKey).lastInsertRowid;
 let added=0,updated=0; const states={}; let errors=[];
 async function ingest(item,source){
  const title=String(item.title||'').trim(),url=item.link;
@@ -115,8 +116,8 @@ if(hm==='08:50'||process.env.EDGE_FINAL_REPORT==='true'){
  db.prepare('INSERT INTO reports(trade_date,generated_at,text) VALUES(?,?,?) ON CONFLICT(trade_date) DO UPDATE SET generated_at=excluded.generated_at,text=excluded.text').run(tradeDate,finished,`${textReport}\n\n${coverage}`);
 }
 const kstLabel=(value)=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'medium'}).format(new Date(value))+' KST';
-const runLog={run,eventType:triggerType,cronExpression,scheduledFor,originalSlotKnown:scheduledSlotKnown,slotDelayMs,dedupeKey,workflowStartedAtUtc:workflowStartedAt,collectionStartedAtUtc:collectionStartedAt,collectionStartedAtKst:kstLabel(collectionStartedAt),collectionFinishedAtUtc:finished,collectionFinishedAtKst:kstLabel(finished),status:runStatus,sourceStatus:states,added,updated,jsonStatus:'awaiting_export',deploymentStatus:'awaiting_workflow',errorCode,errors};
+const runLog={run,eventType:triggerType,cronExpression,scheduledFor,originalSlotKnown:scheduledSlotKnown,slotDelayMs,scheduleTimingStatus,dedupeKey,workflowStartedAtUtc:workflowStartedAt,collectionStartedAtUtc:collectionStartedAt,collectionStartedAtKst:kstLabel(collectionStartedAt),collectionFinishedAtUtc:finished,collectionFinishedAtKst:kstLabel(finished),status:runStatus,sourceStatus:states,added,updated,jsonStatus:'awaiting_export',deploymentStatus:'awaiting_workflow',errorCode,errors};
 console.log(JSON.stringify(runLog));
-if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Collection execution\n\n- Run: ${run}\n- Event: ${triggerType}\n- Cron: ${cronExpression||'none'}\n- Scheduled slot: ${scheduledFor||'unknown'}\n- Original slot known: ${scheduledSlotKnown}\n- Collection: ${collectionStartedAt} → ${finished}\n- Status: ${runStatus}\n- Added/updated: ${added}/${updated}\n- Error code: ${errorCode||'none'}\n`);
+if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`### Collection execution\n\n- Run: ${run}\n- Event: ${triggerType}\n- Cron: ${cronExpression||'none'}\n- Scheduled slot: ${scheduledFor||'unknown'}\n- Original slot known: ${scheduledSlotKnown}\n- Timing assessment: ${scheduleTimingStatus}\n- Collection: ${collectionStartedAt} → ${finished}\n- Status: ${runStatus}\n- Added/updated: ${added}/${updated}\n- Error code: ${errorCode||'none'}\n`);
 db.exec("DELETE FROM articles WHERE first_seen_at < datetime('now','-120 days'); DELETE FROM runs WHERE started_at < datetime('now','-180 days'); DELETE FROM reports WHERE trade_date < date('now','-180 days'); PRAGMA wal_checkpoint(TRUNCATE)");
 

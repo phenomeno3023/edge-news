@@ -54,6 +54,27 @@ test("latest recovery reason and actual timing fields are carried through withou
   assert.equal(health.latestAttemptScheduledFor, null);
   assert.equal(health.latestAttemptOriginalSlotKnown, false);
   assert.equal(health.latestAttemptReason, run.decision_reason);
+  assert.equal(health.latestAttemptTimingStatus, "UNVERIFIED");
+});
+
+test("schedule timing evidence is exposed separately from collection success", () => {
+  const run = { ...good(6, "2026-10-28T00:28:00Z", "2026-10-28T00:29:00Z"),
+    schedule_timing_status: "DELAYED_TO_CURRENT_WINDOW", scheduled_for: "2026-10-28T00:20:00Z" };
+  const health = getCollectionRecoveryStatus([run], { now: "2026-10-28T00:30:00Z" });
+  assert.equal(health.state, "RECENT_COLLECTION_RECORDED");
+  assert.equal(health.latestAttemptTimingStatus, "DELAYED_TO_CURRENT_WINDOW");
+  assert.equal(health.lastSuccessfulCollectionAt, run.collection_finished_at);
+});
+
+test("collection, JSON generation, and publication evidence remain separate", () => {
+  const failedPublish = { ...good(7, "2026-10-28T00:28:00Z", "2026-10-28T00:29:00Z"),
+    json_status: "generated", deployment_status: "failure", deployment_finished_at: "2026-10-28T00:31:00Z" };
+  const priorPublish = { id: 6, deployment_status: "success", deployment_finished_at: "2026-10-27T00:31:00Z" };
+  const health = getCollectionRecoveryStatus([failedPublish, priorPublish], { now: "2026-10-28T00:30:00Z" });
+  assert.equal(health.state, "RECENT_COLLECTION_RECORDED");
+  assert.equal(health.latestAttemptJsonStatus, "generated");
+  assert.equal(health.latestAttemptPublicationStatus, "failure");
+  assert.equal(health.lastSuccessfulPublicationAt, priorPublish.deployment_finished_at);
 });
 
 test("invalid evaluation time is rejected", () => {
