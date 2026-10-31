@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "edge-news-recovery-trigger",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    "crons": ["0,2,12,22,32,42,50 * * * *"]
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "DISPATCH_GUARD", "class_name": "DispatchGuard" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["DispatchGuard"] }
+  ],
+  "vars": {
+    "GITHUB_OWNER": "phenomeno3023",
+    "GITHUB_REPO": "edge-news",
+    "GITHUB_WORKFLOW_FILE": "edge-news.yml",
+    "GITHUB_REF": "main",
+    "PUBLIC_STATUS_URL": "https://phenomeno3023.github.io/edge-news/data/status.json"
+  }
+}
