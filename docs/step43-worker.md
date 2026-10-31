@@ -69,8 +69,10 @@ approved isolated deployment and operational observation.
 ## Authentication design (not configured)
 
 `RECOVERY_ENABLED` is set to `false` in the deployment configuration. A first
-deployment therefore remains inert. Change it to `true` only after the
-approved connection and staged verification are complete.
+deployment therefore remains inert. After approved credentials are installed,
+`dry-run` performs public-status and GitHub Actions read checks, logs whether it
+would dispatch, and does not claim a window or call `workflow_dispatch`. Change
+it to `true` only after that staged verification is reviewed.
 
 Required future configuration:
 

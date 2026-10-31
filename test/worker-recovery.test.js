@@ -216,6 +216,24 @@ test("missing current-window evidence dispatches only after both sources are che
   assert.equal(calls, 1);
 });
 
+test("dry-run mode checks recovery evidence without claiming or dispatching", async () => {
+  let claims = 0;
+  let dispatches = 0;
+  const result = await runRecoveryCheck({
+    controller: controller("2026-11-02T00:02:00.000Z"),
+    env: {},
+    now: kst("2026-11-02T00:02:05.000Z"),
+    dryRun: true,
+    deps: deps({
+      claim: async () => { claims += 1; return true; },
+      dispatch: async () => { dispatches += 1; return { ok: true, status: 204 }; }
+    })
+  });
+  assert.equal(result.action, "dry_run_would_dispatch");
+  assert.equal(claims, 0);
+  assert.equal(dispatches, 0);
+});
+
 test("scheduled Worker remains inert until the explicit recovery flag is enabled", async () => {
   const originalLog = console.log;
   let entry;

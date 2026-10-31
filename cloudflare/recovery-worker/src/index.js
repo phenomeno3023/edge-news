@@ -364,7 +364,7 @@ async function claimWindow(env, key, now) {
   return true;
 }
 
-export async function runRecoveryCheck({ controller, env, now = new Date(), deps = {} }) {
+export async function runRecoveryCheck({ controller, env, now = new Date(), deps = {}, dryRun = false }) {
   const actual = now instanceof Date ? now : new Date(now);
   const assess = assessTrigger({
     scheduledTime: controller?.scheduledTime,
@@ -421,6 +421,9 @@ export async function runRecoveryCheck({ controller, env, now = new Date(), deps
   const decision = recoveryDecision({ health, runs, key, jobsByRun, calendar: options });
   if (!decision.dispatch) {
     return { action: "skip", reason: decision.reason, targetKey: key, runId: decision.runId || null };
+  }
+  if (dryRun) {
+    return { action: "dry_run_would_dispatch", reason: decision.reason, targetKey: key };
   }
 
   let claimed;
@@ -494,11 +497,12 @@ export class DispatchGuard {
 
 export default {
   async scheduled(controller, env) {
-    if (env.RECOVERY_ENABLED !== "true") {
+    const mode = env.RECOVERY_ENABLED;
+    if (mode !== "true" && mode !== "dry-run") {
       console.log(JSON.stringify({ action: "skip", reason: "recovery_disabled" }));
       return;
     }
-    const result = await runRecoveryCheck({ controller, env });
+    const result = await runRecoveryCheck({ controller, env, dryRun: mode === "dry-run" });
     console.log(JSON.stringify({
       action: result.action,
       reason: result.reason,
