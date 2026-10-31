@@ -12,7 +12,7 @@ test("normal and delayed morning schedules collect only inside configured KST wi
   assert.equal(decideSchedule({ now: "2026-10-27T01:05:00Z", cron: SCHEDULE_CRONS.tenMinute, ...calendar }).run, true);
   const late = decideSchedule({ now: "2026-10-27T11:01:00Z", cron: SCHEDULE_CRONS.tenMinute, ...calendar });
   assert.equal(late.run, false);
-  assert.match(late.reason, /after 20:00 is blocked/);
+  assert.match(late.reason, /outside the configured collection windows/);
 });
 
 test("weekday daytime and final 20:00 schedule stay in the approved windows", () => {

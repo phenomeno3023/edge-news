@@ -54,6 +54,9 @@ const output = {
   scheduledFor: decision.scheduledFor,
   originalSlotKnown: decision.originalSlotKnown,
   slotDelayMs: decision.slotDelayMs,
+  timingStatus: decision.timingStatus || "NOT_APPLICABLE",
+  eligibilityStatus: decision.eligibilityStatus || (decision.run ? "ACCEPTED" : "SKIPPED"),
+  scheduleWindowKey: decision.scheduleWindowKey || null,
   dedupeKey: decision.dedupeKey
 };
 const clean = (value) => String(value ?? "").replace(/[\r\n]/g, " ");
@@ -72,13 +75,16 @@ const summary = [
   `- KRX calendar: ${output.calendarStatus}`,
   `- Reason: ${output.reason}`,
   `- Original scheduled slot: ${output.scheduledFor || "unknown; no slot inferred from the cron expression"}`,
+  `- Schedule timing assessment: ${output.timingStatus}`,
+  `- Window eligibility: ${output.eligibilityStatus}`,
+  `- Current policy window: ${output.scheduleWindowKey || "none"}`,
   `- Current-window idempotency key: ${output.dedupeKey || "unavailable"}`,
   ""
 ].join("\n");
 console.log(JSON.stringify(output));
 append(process.env.GITHUB_OUTPUT,
-  `run=${output.run}\ndeploy_only=${output.deployOnly}\nevent_type=${clean(output.eventType)}\ncron_expression=${clean(output.cronExpression)}\nactual_started_at_utc=${output.actualStartedAtUtc}\ndecision_at_utc=${output.decisionAtUtc}\nscheduled_for=${output.scheduledFor || ""}\noriginal_slot_known=${output.originalSlotKnown}\nslot_delay_ms=${output.slotDelayMs ?? ""}\ndedupe_key=${clean(output.dedupeKey)}\nschedule_reason=${clean(output.reason)}\ncalendar_status=${output.calendarStatus}\nschedule_mode=${output.cadence}\n`);
+  `run=${output.run}\ndeploy_only=${output.deployOnly}\nevent_type=${clean(output.eventType)}\ncron_expression=${clean(output.cronExpression)}\nactual_started_at_utc=${output.actualStartedAtUtc}\ndecision_at_utc=${output.decisionAtUtc}\nscheduled_for=${output.scheduledFor || ""}\noriginal_slot_known=${output.originalSlotKnown}\nslot_delay_ms=${output.slotDelayMs ?? ""}\nschedule_timing_status=${output.timingStatus}\nschedule_eligibility_status=${output.eligibilityStatus}\nschedule_window_key=${clean(output.scheduleWindowKey)}\ndedupe_key=${clean(output.dedupeKey)}\nschedule_reason=${clean(output.reason)}\ncalendar_status=${output.calendarStatus}\nschedule_mode=${output.cadence}\n`);
 append(process.env.GITHUB_ENV,
-  `EDGE_ACTIONS_SCHEDULED_FOR=${output.scheduledFor || ""}\nEDGE_ACTIONS_ORIGINAL_SLOT_KNOWN=${output.originalSlotKnown}\nEDGE_ACTIONS_SLOT_DELAY_MS=${output.slotDelayMs ?? ""}\nEDGE_ACTIONS_DEDUPE_KEY=${clean(output.dedupeKey)}\nEDGE_ACTIONS_DECISION_AT=${output.decisionAtUtc}\nEDGE_ACTIONS_DECISION_REASON=${clean(output.reason)}\nEDGE_ACTIONS_CRON=${clean(output.cronExpression)}\nEDGE_ACTIONS_EVENT_TYPE=${clean(output.eventType)}\nEDGE_ACTIONS_CADENCE=${output.cadence}\nEDGE_KRX_CALENDAR_STATUS=${output.calendarStatus}\nEDGE_SCHEDULE_MODE=${output.cadence}\n`);
+  `EDGE_ACTIONS_SCHEDULED_FOR=${output.scheduledFor || ""}\nEDGE_ACTIONS_ORIGINAL_SLOT_KNOWN=${output.originalSlotKnown}\nEDGE_ACTIONS_SLOT_DELAY_MS=${output.slotDelayMs ?? ""}\nEDGE_ACTIONS_SCHEDULE_TIMING_STATUS=${output.timingStatus}\nEDGE_ACTIONS_SCHEDULE_WINDOW_KEY=${clean(output.scheduleWindowKey)}\nEDGE_ACTIONS_DEDUPE_KEY=${clean(output.dedupeKey)}\nEDGE_ACTIONS_DECISION_AT=${output.decisionAtUtc}\nEDGE_ACTIONS_DECISION_REASON=${clean(output.reason)}\nEDGE_ACTIONS_CRON=${clean(output.cronExpression)}\nEDGE_ACTIONS_EVENT_TYPE=${clean(output.eventType)}\nEDGE_ACTIONS_CADENCE=${output.cadence}\nEDGE_KRX_CALENDAR_STATUS=${output.calendarStatus}\nEDGE_SCHEDULE_MODE=${output.cadence}\n`);
 append(process.env.GITHUB_STEP_SUMMARY, summary);
 

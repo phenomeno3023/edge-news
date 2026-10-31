@@ -26,9 +26,11 @@ test("STEP 16 additive SQLite migration preserves legacy rows, uniqueness, and r
         updated INTEGER NOT NULL DEFAULT 0, error TEXT NOT NULL DEFAULT ''
       );
       CREATE TABLE reports (trade_date TEXT PRIMARY KEY, generated_at TEXT NOT NULL, text TEXT NOT NULL);
-      INSERT INTO articles(id,title,url,source,first_seen_at,updated_at) VALUES('old-1','legacy','https://example.test/1','RSS','2026-01-01','2026-01-01');
-      INSERT INTO runs(started_at,status) VALUES('2026-01-01','ok');
     `);
+    const insertArticle = legacy.prepare("INSERT INTO articles(id,title,url,source,first_seen_at,updated_at) VALUES(?,?,?,?,?,?)");
+    const insertRun = legacy.prepare("INSERT INTO runs(started_at,status) VALUES(?,?)");
+    for (let i = 1; i <= 412; i++) insertArticle.run(`old-${i}`, `legacy ${i}`, `https://example.test/${i}`, "RSS", "2026-01-01", "2026-01-01");
+    for (let i = 1; i <= 55; i++) insertRun.run(`2026-01-${String((i % 28) + 1).padStart(2, "0")}`, "ok");
     legacy.close();
 
     const initialized = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./src/store.js')"], {
@@ -37,16 +39,19 @@ test("STEP 16 additive SQLite migration preserves legacy rows, uniqueness, and r
     assert.equal(initialized.status, 0, initialized.stderr);
 
     const db = new DatabaseSync(dbPath);
-    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM articles").get().n, 1);
-    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM runs").get().n, 1);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM articles").get().n, 412);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM runs").get().n, 55);
+    assert.equal(db.prepare("SELECT url FROM articles WHERE id='old-412'").get().url, "https://example.test/412");
     assert.ok(db.prepare("PRAGMA table_info(runs)").all().some((column) => column.name === "dedupe_key"));
     assert.ok(db.prepare("PRAGMA table_info(runs)").all().some((column) => column.name === "deployment_finished_at"));
+    assert.ok(db.prepare("PRAGMA table_info(runs)").all().some((column) => column.name === "schedule_timing_status"));
+    assert.equal(db.prepare("SELECT schedule_timing_status FROM runs WHERE id=55").get().schedule_timing_status, "unknown");
     assert.equal(Object.values(db.prepare("PRAGMA integrity_check").get())[0], "ok");
     const checkpoint = db.prepare("PRAGMA wal_checkpoint(TRUNCATE)").get();
     assert.equal(Number(checkpoint.busy), 0);
     db.prepare("INSERT INTO articles(id,title,url,source,first_seen_at,updated_at) VALUES(?,?,?,?,?,?)")
-      .run("legacy-2", "rollback-compatible", "https://example.test/2", "RSS", "2026-01-02", "2026-01-02");
-    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM articles").get().n, 2);
+      .run("legacy-2", "rollback-compatible", "https://example.test/rollback", "RSS", "2026-01-02", "2026-01-02");
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM articles").get().n, 413);
     assert.throws(() => db.prepare("INSERT INTO articles(id,title,url,source,first_seen_at,updated_at) VALUES(?,?,?,?,?,?)")
       .run("dup", "duplicate", "https://example.test/1", "RSS", "2026-01-02", "2026-01-02"));
     db.close();

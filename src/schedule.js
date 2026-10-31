@@ -48,7 +48,10 @@ export function calendarFor(date, { year, holidays } = {}) {
 function kstWindowKey(calendar, hour, minute) {
   const { date, mode } = calendar;
   if (mode === "holiday-hourly") return `window:${date}:holiday:${String(hour).padStart(2, "0")}`;
-  if (hour === 8) return `window:${date}:morning:${String(Math.floor(minute / 10) * 10).padStart(2, "0")}`;
+  if (hour === 8) {
+    if (minute > 50) return null;
+    return `window:${date}:morning:${String(Math.floor(minute / 10) * 10).padStart(2, "0")}`;
+  }
   if (hour >= 9 && hour < 20) return `window:${date}:trading:${String(hour).padStart(2, "0")}:${String(Math.floor(minute / 30) * 30).padStart(2, "0")}`;
   if (hour === 20 && minute === 0) return `window:${date}:trading:20:00`;
   return null;
@@ -59,6 +62,22 @@ function parseOriginalSlot(value, now) {
   const ms = Date.parse(value);
   if (!Number.isFinite(ms) || ms > now.getTime()) return { scheduledFor: null, originalSlotKnown: false, slotDelayMs: null };
   return { scheduledFor: new Date(ms).toISOString(), originalSlotKnown: true, slotDelayMs: now.getTime() - ms };
+}
+
+function scheduledSlotAssessment(original, cron, now, currentWindowKey, year, holidays) {
+  if (!original.originalSlotKnown) return "SLOT_UNKNOWN";
+  const scheduled = new Date(original.scheduledFor);
+  if (!cronMatchesUtcMinute(cron, scheduled)) {
+    return "SCHEDULE_METADATA_MISMATCH";
+  }
+  if (!isOperatingCronSlot(cron, scheduled, year, holidays)) return "SCHEDULE_SLOT_OUTSIDE_POLICY";
+  const scheduledCalendar = calendarFor(scheduled, { year, holidays });
+  const p = scheduledCalendar.parts;
+  const scheduledKey = kstWindowKey(scheduledCalendar, Number(p.hour), Number(p.minute));
+  if (scheduledKey === currentWindowKey && original.slotDelayMs <= EARLY_START_GRACE_MS) {
+    return "ON_TIME_OR_WITHIN_WINDOW";
+  }
+  return "DELAYED_TO_CURRENT_WINDOW";
 }
 
 function cronMatchesUtcMinute(cron, date) {
@@ -128,15 +147,20 @@ export function decideSchedule({
   const minute = Number(p.minute);
   const original = parseOriginalSlot(scheduledAt, actual);
   const key = kstWindowKey(calendar, hour, minute);
-  // When GitHub does not provide the original slot, every recognized event
-  // resolving to the same active KST window shares one idempotency key.
-  const slotKey = original.originalSlotKnown ? `slot:${original.scheduledFor}` : key;
+  const timingStatus = event === "schedule"
+    ? scheduledSlotAssessment(original, cron, actual, key, year, holidays)
+    : "NOT_APPLICABLE";
   const exact = { ...original };
-  const permit = (cadence, reason, dedupeKey = slotKey) => ({
-    ...base, ...exact, run: true, cadence, reason,
+  const permit = (cadence, reason, dedupeKey = key) => ({
+    ...base, ...exact, run: true, cadence, reason, timingStatus,
+    scheduleWindowKey: key,
     dedupeKey: dedupeKey || (runId ? `run:${runId}:${runAttempt || 1}` : null)
   });
-  const skip = (reason) => ({ ...base, run: false, cadence: "none", reason });
+  const skip = (reason, skippedTimingStatus = timingStatus, eligibilityStatus = "SKIPPED") => ({
+    ...base, ...exact, run: false, cadence: "none", reason,
+    timingStatus: skippedTimingStatus, scheduleWindowKey: key,
+    eligibilityStatus
+  });
 
   if (event === "workflow_dispatch") {
     const inOperatingWindow = calendar.mode === "holiday-hourly"
@@ -153,82 +177,39 @@ export function decideSchedule({
 
   const knownCron = Object.values(CRONS).includes(cron);
   if (!knownCron) return skip("unrecognized scheduled cron expression");
+  if (timingStatus === "SCHEDULE_METADATA_MISMATCH") {
+    return skip("provided original slot does not match the cron expression or an operating schedule slot");
+  }
 
   const earlySlot = upcomingEarlySlot(startedAt || actual, actual, cron, year, holidays);
   if (earlySlot) {
     return {
-      ...base, run: false, cadence: "deferred-early-start",
+      ...base, ...exact, run: false, cadence: "deferred-early-start",
+      timingStatus,
+      eligibilityStatus: "DEFERRED_UNTIL_BOUNDARY",
+      scheduleWindowKey: key,
       reason: "schedule event began shortly before a confirmed operating cron boundary; wait for that boundary and re-evaluate",
       waitUntil: earlySlot.toISOString()
     };
   }
 
-  // Multiple GitHub cron expressions overlap at the top of the hour. Route
-  // any recognized event through the KST calendar/window first, then use the
-  // active window as the dedupe key. This also lets a delayed overlapping
-  // event recover the current window without claiming an unknown old slot.
-  if (!calendar.weekday) {
-    const overlappingTopOfHour = minute === 0 && cron !== CRONS.hourly;
-    if (cron !== CRONS.hourly && !overlappingTopOfHour) {
-      return skip("non-trading day uses hourly cadence; non-hourly event is not an exact top-of-hour overlap");
-    }
-    return permit(
-      "holiday-hourly",
-      "weekend/KRX-holiday event accepted in the current KST hour; exact original slot is unavailable",
-      key
-    );
-  }
-
-  if (cron === CRONS.hourly) {
-    if (hour === 8 && minute <= 50) {
-      return permit("morning-10m", "overlapping hourly cron accepted in the active weekday morning window; original slot is unknown");
-    }
-    if (hour >= 9 && hour < 20) {
-      return permit("trading-day-30m", "overlapping hourly cron accepted in the active weekday trading window; original slot is unknown");
-    }
-    if (hour === 20 && minute === 0) {
-      return permit("trading-day-final", "overlapping hourly cron accepted at the weekday 20:00 final window; original slot is unknown");
-    }
-    return skip("overlapping hourly cron is outside an active weekday collection window");
-  }
-
-  if (cron === CRONS.tenMinute) {
-    if (hour === 8 && minute <= 50) {
-      const reason = original.originalSlotKnown
-        ? "morning sweep accepted inside its KST collection window"
-        : "morning sweep accepted; exact original cron slot is unavailable";
-      return permit("morning-10m", reason);
-    }
-    if ((hour >= 9 && hour < 20) || (hour === 20 && minute === 0)) {
-      return permit(
-        "delayed-recovery",
-        original.originalSlotKnown
-          ? "delayed morning event recovered in an active collection window; original slot is not retroactive success"
-          : "delayed morning event recovered in active collection window; original cron slot is unknown"
-      );
-    }
-    return skip("morning sweep arrived outside the weekday 08:00-08:50 window; after 20:00 is blocked");
-  }
-
-  if (cron === CRONS.thirtyMinute) {
-    if (hour >= 9 && hour < 20) {
-      return permit("trading-day-30m", original.originalSlotKnown
-        ? "weekday trading-window collection"
-        : "weekday trading window; exact original cron slot is unavailable");
-    }
-    return skip("30-minute cron is outside the weekday 09:00-20:00 collection window");
-  }
-
-  if (cron === CRONS.twentyKst) {
-    if (hour === 20 && minute === 0) {
-      return permit("trading-day-final", original.originalSlotKnown
-        ? "weekday 20:00 final collection"
-        : "weekday 20:00 final collection; exact original cron slot is unavailable");
-    }
-    return skip("20:00 final cron is accepted only at 20:00 KST; later runs are blocked");
-  }
-
-  return skip("unrecognized scheduled cron expression");
+  // GitHub sends the cron expression but not the timestamp of an individual
+  // scheduled slot. Route a recognized event to the current KST policy window
+  // and always dedupe on that current window. This safely recovers delayed or
+  // overlapping events without crediting an old slot as a successful run.
+  if (!key) return skip("current KST time is outside the configured collection windows", timingStatus, "OUTSIDE_ALLOWED_WINDOW");
+  const cadence = calendar.mode === "holiday-hourly"
+    ? "holiday-hourly"
+    : hour === 8 ? "morning-10m"
+      : hour === 20 ? "trading-day-final" : "trading-day-30m";
+  const isDelayed = original.originalSlotKnown
+    && ["DELAYED_TO_CURRENT_WINDOW", "SCHEDULE_SLOT_OUTSIDE_POLICY"].includes(timingStatus);
+  const reason = isDelayed
+    ? `scheduled event (${timingStatus.toLowerCase()}) recovered in the current KST window; the missed original slot is not retroactively credited`
+    : !original.originalSlotKnown
+      ? "recognized schedule routed by current KST policy; exact scheduled slot is unavailable"
+      : "scheduled event accepted in its current KST policy window";
+  return { ...permit(isDelayed ? "delayed-recovery" : cadence, reason, key), eligibilityStatus: "ACCEPTED_CURRENT_WINDOW" };
 }
 
 export const SCHEDULE_CRONS = CRONS;
