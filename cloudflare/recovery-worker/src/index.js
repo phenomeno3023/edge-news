@@ -496,6 +496,13 @@ export class DispatchGuard {
 }
 
 export default {
+  async fetch() {
+    return new Response(null, {
+      status: 404,
+      headers: { "cache-control": "no-store" }
+    });
+  },
+
   async scheduled(controller, env) {
     const mode = env.RECOVERY_ENABLED;
     if (mode !== "true" && mode !== "dry-run") {
