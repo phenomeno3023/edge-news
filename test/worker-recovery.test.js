@@ -2,14 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import {
-  DispatchGuard,
   UPSTREAM_TIMEOUT_MS,
   WORKER_CRON,
   assessTrigger,
   fetchWithTimeout,
   recoveryDecision,
   runRecoveryCheck
-} from "../cloudflare/recovery-worker/src/index.js";
+} from "../cloudflare/recovery-worker/src/recovery-internals.js";
+import { DispatchGuard } from "../cloudflare/recovery-worker/src/index.js";
 import recoveryWorker from "../cloudflare/recovery-worker/src/index.js";
 
 const kst = (isoUtc) => new Date(isoUtc);

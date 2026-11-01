@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import recoveryWorker from "../cloudflare/recovery-worker/src/index.js";
+import * as workerEntrypoint from "../cloudflare/recovery-worker/src/index.js";
+
+test("Worker entrypoint exports only the handler and Durable Object class", () => {
+  assert.deepEqual(Object.keys(workerEntrypoint).sort(), ["DispatchGuard", "default"]);
+});
 
 test("HTTP requests for common methods return 404 without starting recovery or making calls", async () => {
   const originalFetch = globalThis.fetch;
