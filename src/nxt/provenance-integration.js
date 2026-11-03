@@ -5,7 +5,12 @@ import {runLegacyIntegrationPipeline} from './legacy-integration-pipeline.js';
 import {validateIntegrationResult} from './integration-result-contract.js';
 
 const keyFor = record => String(record?.id ?? record?.sourceRecordId ?? record?.url ?? '');
-const clone = value => structuredClone(value);
+const withoutObservationTimes = value => {
+  const copy = structuredClone(value);
+  delete copy.observedAt;
+  delete copy.matchedAt;
+  return copy;
+};
 
 /** Normalize, persist, reload, and then enrich STEP 56's isolated TOP10 result. */
 export async function runProvenanceIntegration({top10Result, articleRows = [], dartDocumentedFixtures = [], dataOrigin = 'legacy_format_fixture', now = new Date(), store = createProvenanceStore()} = {}) {
@@ -36,7 +41,7 @@ export async function runProvenanceIntegration({top10Result, articleRows = [], d
   for (const record of built) {
     const restored = byId.get(record.recordId);
     if (!restored) { roundTripMismatches.push({recordId: record.recordId, field: '*', reason: 'record_not_found_after_save'}); continue; }
-    if (JSON.stringify(record) !== JSON.stringify(restored)) roundTripMismatches.push({recordId: record.recordId, field: '*', reason: 'provenance_fields_changed_during_round_trip'});
+    if (JSON.stringify(withoutObservationTimes(record)) !== JSON.stringify(withoutObservationTimes(restored))) roundTripMismatches.push({recordId: record.recordId, field: '*', reason: 'provenance_fields_changed_during_round_trip'});
   }
   const step56 = runLegacyIntegrationPipeline({top10Result, articleRows, dartDocumentedFixtures, dataOrigin, now});
   const checkRecord = record => {

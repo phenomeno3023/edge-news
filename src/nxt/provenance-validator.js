@@ -7,6 +7,11 @@ const DATE_ONLY = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.te
   && Number.isFinite(Date.parse(`${value}T00:00:00Z`))
   && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
 const TICKER = value => typeof value === 'string' && /^\d{6}$/.test(value);
+const evidenceIdentity = value => {
+  if (!OBJECT(value)) return value;
+  const {observedAt, matchedAt, ...identity} = value;
+  return identity;
+};
 
 const ENUMS = Object.freeze({
   recordType: new Set(['news', 'disclosure']),
@@ -57,7 +62,7 @@ export function validateProvenanceTransition(existing, incoming) {
   const validation = validateProvenanceRecord(incoming);
   if (!validation.valid) return {accepted: false, status: 'rejected', reasons: validation.errors};
   if (!existing) return {accepted: true, status: 'inserted', reasons: []};
-  if (JSON.stringify(existing) === JSON.stringify(incoming)) return {accepted: true, status: 'duplicate', reasons: []};
+  if (JSON.stringify(evidenceIdentity(existing)) === JSON.stringify(evidenceIdentity(incoming))) return {accepted: true, status: 'duplicate', reasons: []};
   return {accepted: false, status: 'conflict', reasons: ['record_id_has_conflicting_provenance']};
 }
 
