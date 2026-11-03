@@ -43,3 +43,27 @@ export function evaluateNxtUniverseEligibility(universe, {ticker, session, now =
       sessions: [entry.preEligible && 'PRE', entry.afterEligible && 'AFTER'].filter(Boolean)}))
   }});
 }
+
+/** A change log or sample file cannot establish a complete, current universe. */
+export function assessNxtUniverseSource({sourceKind, entries = [], declaredComplete = false,
+  verificationStatus = 'UNVERIFIED', payloadOrigin = 'unknown'} = {}) {
+  const rows = Array.isArray(entries) ? entries : [];
+  const tickers = rows.map(entry => entry?.ticker).filter(value => typeof value === 'string');
+  const duplicates = tickers.filter((ticker, index) => tickers.indexOf(ticker) !== index);
+  const invalidTickers = tickers.filter(ticker => !/^\d{6}$/.test(ticker));
+  const missingSessionFlags = rows.filter(entry => typeof entry?.preEligible !== 'boolean' || typeof entry?.afterEligible !== 'boolean').length;
+  const isFullCapture = sourceKind === 'full_current_file' && declaredComplete === true
+    && verificationStatus === 'LIVE_VERIFIED' && payloadOrigin === 'live_response'
+    && rows.length > 0 && duplicates.length === 0 && invalidTickers.length === 0 && missingSessionFlags === 0;
+  const status = isFullCapture ? 'VERIFIED' : sourceKind === 'change_history' || sourceKind === 'sample_file' ? 'PARTIAL' : 'UNVERIFIED';
+  return {status, complete: isFullCapture, sourceKind: sourceKind || 'unknown',
+    entryCount: rows.length, duplicateTickers: [...new Set(duplicates)], invalidTickers: [...new Set(invalidTickers)], missingSessionFlags,
+    reasons: isFullCapture ? [] : [
+      ...(!Array.isArray(entries) ? ['entries_not_array'] : []),
+      ...(sourceKind !== 'full_current_file' ? ['source_is_not_full_current_universe'] : []),
+      ...(!declaredComplete ? ['completeness_not_declared'] : []),
+      ...(verificationStatus !== 'LIVE_VERIFIED' || payloadOrigin !== 'live_response' ? ['source_not_authenticated_live_capture'] : []),
+      ...(duplicates.length ? ['duplicate_tickers'] : []), ...(invalidTickers.length ? ['invalid_tickers'] : []),
+      ...(missingSessionFlags ? ['session_eligibility_flags_missing'] : []), ...(!rows.length ? ['universe_empty'] : [])
+    ]};
+}

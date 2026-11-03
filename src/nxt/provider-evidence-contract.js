@@ -3,6 +3,7 @@ export const PROVIDER_EVIDENCE_TYPES = Object.freeze(['official_document', 'docu
 export const PROVIDER_AUTHENTICITY = Object.freeze(['DOCUMENTED', 'AUTHENTICATED', 'UNVERIFIED', 'NOT_APPLICABLE']);
 export const PROVIDER_SAMPLE_TYPES = Object.freeze(['synthetic_fixture', 'documented_example', 'authenticated_capture', 'none']);
 export const PROVIDER_PERMISSION_VALUES = Object.freeze(['ALLOWED', 'DENIED', 'UNVERIFIED']);
+export const PROVIDER_DIGEST_KINDS = Object.freeze(['metadata_record', 'source_bytes', 'public_example_excerpt', 'authenticated_payload']);
 
 const text = value => typeof value === 'string' && value.trim().length > 0;
 const iso = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value));
@@ -26,6 +27,10 @@ export function validateProviderEvidence(input, {now = new Date()} = {}) {
   if (!PROVIDER_AUTHENTICITY.includes(value.authenticityStatus)) errors.push('authenticity_status_invalid');
   if (!PROVIDER_SAMPLE_TYPES.includes(value.sampleType ?? 'none')) errors.push('sample_type_invalid');
   if (!digest(value.evidenceDigest)) errors.push('evidence_digest_invalid');
+  if (value.digestKind != null && !PROVIDER_DIGEST_KINDS.includes(value.digestKind)) errors.push('digest_kind_invalid');
+  for (const key of ['apiId', 'responseLocation', 'dataType', 'unit', 'marketScope', 'sessionScope']) {
+    if (value[key] != null && !text(value[key])) errors.push(`${key}_invalid`);
+  }
   if (!Array.isArray(value.limitations) || value.limitations.some(item => !text(item))) errors.push('limitations_invalid');
   if (value.permissionValue != null && !PROVIDER_PERMISSION_VALUES.includes(value.permissionValue)) errors.push('permission_value_invalid');
   if (value.verificationLevel === 'AUTHENTICATED') {

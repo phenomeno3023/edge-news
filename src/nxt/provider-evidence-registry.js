@@ -21,7 +21,9 @@ export class ProviderEvidenceRegistry {
     }
     const conflicts = [];
     for (const prior of this.#records.values()) {
-      if (prior.providerId === item.providerId && prior.documentVersion === item.documentVersion && prior.fieldName === item.fieldName && prior.documentedMeaning !== item.documentedMeaning) {
+      if (prior.providerId === item.providerId && prior.documentVersion === item.documentVersion
+        && prior.fieldName === item.fieldName && (prior.apiId ?? null) === (item.apiId ?? null)
+        && prior.documentedMeaning !== item.documentedMeaning) {
         conflicts.push({evidenceId: item.evidenceId, conflictingEvidenceId: prior.evidenceId, fieldName: item.fieldName, providerId: item.providerId, reason: 'field_meaning_conflict'});
       }
     }
