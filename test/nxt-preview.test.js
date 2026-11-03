@@ -200,4 +200,3 @@ test('미리보기 렌더링은 원본 Mock 스냅샷을 변경하지 않는다'
   renderPreview(data, {session: 'PRE', selectedSymbol: '990001', now: NOW});
   assert.deepEqual(data, before);
 });
-
