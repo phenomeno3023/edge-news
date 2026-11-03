@@ -21,6 +21,7 @@ test('일반 RSS를 일반 뉴스로 구분한다', () => assert.equal(classifyL
 test('KIND RSS는 KIND 후보로 구분하되 출처 미검증을 유지한다', () => assert.deepEqual(classifyLegacySource(row({source:'kind.krx.co.kr/disclosure/feed'})),{sourceType:'kind_rss',provider:'KIND',provenance:'legacy_unverified'}));
 test('DART 저장 행을 DART로 구분한다', () => assert.equal(classifyLegacySource(dartRow()).provider,'DART'));
 test('출처가 없는 행은 unknown으로 구분한다', () => assert.equal(classifyLegacySource(row({source:''})).sourceType,'unknown'));
+test('출처 불명 공시는 TOP10 연결 목록 대신 종목별 검토 대기열에 남긴다', () => {const input=row({id:'unknown-1',source:'',is_disclosure:1});const r=runLegacyIntegrationPipeline({top10Result:top10([quote(1,'005930')]),articleRows:[input],now});assert.equal(r.items[0].dartDisclosures.length,0);assert.equal(r.items[0].reviewQueue[0].sourceType,'unknown');assert.ok(r.items[0].reviewQueue[0].reasons.includes('source_provenance_unknown'));});
 test('잘못된 ticker는 개별 제외하고 이유를 반환한다', () => {const r=adaptLegacyArticleRows([row({ticker:'5930'})],{now}); assert.equal(r.records.length,0); assert.ok(r.excluded[0].reasons.includes('ticker_missing_or_not_six_digits'));});
 test('잘못된 URL은 제외 사유를 반환한다', () => {const r=adaptLegacyArticleRows([row({url:'javascript:alert(1)'})],{now}); assert.ok(r.excluded[0].reasons.includes('url_missing_or_invalid'));});
 test('제목 누락은 행 단위로 제외한다', () => assert.ok(adaptLegacyArticleRows([row({title:''})],{now}).excluded[0].reasons.includes('title_missing')));

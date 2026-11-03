@@ -42,9 +42,11 @@ export function runLegacyIntegrationPipeline({top10Result, articleRows = [], dar
     const allDisclosures = attachProvenance(item.disclosures?.all || [], sourceById);
     const kindDisclosures = allDisclosures.filter(disclosure => (disclosure.providers || [disclosure.provider]).includes('KIND'));
     const dartDisclosures = allDisclosures.filter(disclosure => (disclosure.providers || [disclosure.provider]).includes('DART'));
-    const matchEvidence = [...relatedNews, ...allDisclosures].map(record => ({id: record.id || null, ticker: item.symbol, matchMethod: record.matchEvidence?.matchMethod || 'legacy_unknown', confidence: record.confidence || 'unknown', reviewStatus: record.reviewStatus || 'needs_review', confirmed: false, reasons: record.matchReasons?.length ? record.matchReasons : [record.matchEvidence?.ambiguityReason || 'legacy_ticker_provenance_not_available']}));
-    const localReview = [...relatedNews, ...allDisclosures].filter(record => record.reviewStatus !== 'verified' || record.confirmed !== true);
-    for (const record of localReview) integrationReviewQueue.push({ticker: item.symbol, id: record.id || null, recordType: kindDisclosures.includes(record) ? 'disclosure' : 'news', sourceType: record.sourceType || record.provider || 'unknown', reasons: record.matchReasons?.length ? record.matchReasons : ['legacy_ticker_provenance_not_available']});
+    const unknownSourceRows = normalized.records.filter(record => record.sourceType === 'unknown' && record.ticker === item.symbol);
+    const reviewRecords = [...relatedNews, ...allDisclosures, ...unknownSourceRows];
+    const matchEvidence = reviewRecords.map(record => ({id: record.id || null, ticker: item.symbol, matchMethod: record.matchEvidence?.matchMethod || 'legacy_unknown', confidence: record.confidence || 'unknown', reviewStatus: record.reviewStatus || 'needs_review', confirmed: false, reasons: record.matchReasons?.length ? record.matchReasons : [record.sourceType === 'unknown' ? 'source_provenance_unknown' : record.matchEvidence?.ambiguityReason || 'legacy_ticker_provenance_not_available']}));
+    const localReview = reviewRecords.filter(record => record.reviewStatus !== 'verified' || record.confirmed !== true);
+    for (const record of localReview) integrationReviewQueue.push({ticker: item.symbol, id: record.id || null, recordType: kindDisclosures.includes(record) || record.is_disclosure === 1 ? 'disclosure' : 'news', sourceType: record.sourceType || record.provider || 'unknown', reasons: record.matchReasons?.length ? record.matchReasons : [record.sourceType === 'unknown' ? 'source_provenance_unknown' : 'legacy_ticker_provenance_not_available']});
     const sourceExclusions = normalized.excluded.filter(exclusion => !exclusion.id || !sourceById.has(String(exclusion.id)));
     const warnings = [
       '기존 ticker의 과거 매칭 근거가 없어 연결 항목은 검토 후보입니다.',
@@ -61,7 +63,7 @@ export function runLegacyIntegrationPipeline({top10Result, articleRows = [], dar
       timeline: item.timeline ? [...(item.timeline.beforeQuote || []), ...(item.timeline.afterQuote || []), ...(item.timeline.timeUnknown || [])] : [],
       matchEvidence, confidence: matchEvidence.length ? 'unknown' : 'unknown',
       reviewStatus: matchEvidence.length ? 'needs_review' : 'no_related_records',
-      reviewQueue: localReview.map(record => ({id: record.id || null, title: record.title, sourceType: record.sourceType || record.provider || 'unknown', reasons: record.matchReasons?.length ? record.matchReasons : ['legacy_ticker_provenance_not_available']})),
+      reviewQueue: localReview.map(record => ({id: record.id || null, title: record.title, sourceType: record.sourceType || record.provider || 'unknown', reasons: record.matchReasons?.length ? record.matchReasons : [record.sourceType === 'unknown' ? 'source_provenance_unknown' : 'legacy_ticker_provenance_not_available']})),
       excludedRecords: sourceExclusions,
       warnings
     };
