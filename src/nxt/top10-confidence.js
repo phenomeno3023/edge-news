@@ -2,8 +2,14 @@ import {classifyDisclosureIdentity, validateMatchCandidate} from './match-valida
 
 function evidenceFor(record, evidenceById) {
   if (record?.matchEvidence || record?.match_evidence) return record;
-  const evidence = record?.id && evidenceById && typeof evidenceById === 'object' ? evidenceById[record.id] : null;
-  return evidence ? {...record, matchEvidence: evidence} : record;
+  const supplied = record?.id && evidenceById && typeof evidenceById === 'object' ? evidenceById[record.id] : null;
+  if (!supplied) return record;
+  if (supplied.matchEvidence || supplied.officialCodeEvidence) return {
+    ...record,
+    ...(supplied.matchEvidence ? {matchEvidence: supplied.matchEvidence} : {}),
+    ...(supplied.officialCodeEvidence ? {officialCodeEvidence: supplied.officialCodeEvidence} : {})
+  };
+  return {...record, matchEvidence: supplied};
 }
 
 function annotate(record, target, universe, commonTerms, evidenceById, now, isDisclosure = false) {
@@ -12,6 +18,7 @@ function annotate(record, target, universe, commonTerms, evidenceById, now, isDi
   return {
     ...record,
     matchEvidence: assessment.evidence,
+    ...(candidate?.officialCodeEvidence ? {officialCodeEvidence: candidate.officialCodeEvidence} : {}),
     matchDecision: assessment.decision,
     confirmed: assessment.confirmed,
     reviewRequired: assessment.reviewRequired,

@@ -1,6 +1,5 @@
 const METHODS = new Set(['official_code', 'exact_name', 'alias', 'title_heuristic', 'legacy_unknown']);
 const OFFICIAL_SOURCES = new Set(['krx_listing_api', 'dart_official_filing', 'kind_official_disclosure', 'kis_official_api', 'official_security_master']);
-const OFFICIAL_FIELDS = new Set(['ticker', 'official_ticker', 'stock_code', 'security_code', 'isu_cd', 'issuer_stock_code']);
 const CONFIDENCE_BY_METHOD = Object.freeze({
   official_code: 'high',
   exact_name: 'medium',
@@ -33,7 +32,7 @@ export function createMatchEvidence(input = {}, {targetTicker = null, legacyTick
   const sufficientOfficialEvidence = method === 'official_code'
     && raw.verified === true
     && OFFICIAL_SOURCES.has(normalizedSource)
-    && OFFICIAL_FIELDS.has(normalizedField)
+    && /^[a-z][a-z0-9_.-]{0,100}$/.test(normalizedField)
     && validTicker(raw.ticker)
     && Boolean(matchedText && sourceField && evidenceSource);
   const sufficientTextEvidence = ['exact_name', 'alias', 'title_heuristic'].includes(method)
@@ -81,6 +80,7 @@ export function createMatchEvidence(input = {}, {targetTicker = null, legacyTick
     evidenceSource: evidenceSource || null,
     confidence,
     reviewStatus,
+    verified: reviewStatus === 'verified' && method === 'official_code',
     ambiguityReason,
     matchedAt
   };

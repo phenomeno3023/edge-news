@@ -82,6 +82,24 @@ export function validateMatchCandidate({target, record, universe = [], commonTer
     return {evidence: explicit, decision: 'rejected', linked: false, confirmed: false, reviewRequired: true, reasons: [explicit.ambiguityReason]};
   }
 
+  if (explicit && ['exact_name', 'alias'].includes(explicit.matchMethod)) {
+    const collisions = detectSymbolCollisions(entities);
+    const matched = normalizeText(explicit.matchedText);
+    const registryTarget = entities.find(entity => entity.ticker === targetEntity.ticker) || targetEntity;
+    const targetLabels = unique([registryTarget.name, ...registryTarget.aliases].map(normalizeText));
+    const tickerConflict = Boolean(explicit.ticker && explicit.ticker !== targetEntity.ticker);
+    const collision = collisions.some(item => item.normalizedText === matched && item.tickers.includes(targetEntity.ticker));
+    const mentions = mentionsInTitle(title, entities);
+    const otherTickers = unique(mentions.map(item => item.ticker).filter(ticker => ticker !== targetEntity.ticker));
+    if (tickerConflict || !targetLabels.includes(matched) || collision || otherTickers.length) {
+      explicit.reviewStatus = 'conflict';
+      explicit.confidence = 'low';
+      explicit.ambiguityReason ||= tickerConflict ? 'text_evidence_ticker_conflicts_with_target' : collision ? 'name_or_alias_collision' : otherTickers.length ? 'multiple_issuers_mentioned' : 'text_evidence_does_not_match_target_name';
+      return {evidence: explicit, decision: 'rejected', linked: false, confirmed: false, reviewRequired: true, reasons: [explicit.ambiguityReason]};
+    }
+    return {evidence: explicit, decision: 'candidate', linked: false, confirmed: false, reviewRequired: true, reasons: ['text_match_is_candidate_not_official_code_proof']};
+  }
+
   const collisions = detectSymbolCollisions(entities);
   const titleMentions = mentionsInTitle(title, entities);
   const matchingMentions = titleMentions.filter(mention => mention.ticker === targetEntity.ticker);
