@@ -4,14 +4,15 @@ const clone = value => value == null ? value : structuredClone(value);
 const sorted = values => values.sort((a, b) => a.recordId.localeCompare(b.recordId));
 
 /** Ephemeral in-memory store for isolated development/tests. It never opens a database file. */
-export function createProvenanceStore() {
+export function createProvenanceStore({clock = () => new Date().toISOString()} = {}) {
   const records = new Map();
+  const createdAt = new Map();
   const conflicts = [];
   const saveRecord = input => {
     const record = clone(input);
     const existing = records.get(record?.recordId);
     const result = validateProvenanceTransition(existing, record);
-    if (result.status === 'inserted') records.set(record.recordId, record);
+    if (result.status === 'inserted') { records.set(record.recordId, record); createdAt.set(record.recordId, clock()); }
     if (result.status === 'conflict') conflicts.push({recordId: record?.recordId || null, reasons: [...result.reasons], existing: clone(existing), incoming: clone(record)});
     return {...result, record: result.accepted ? clone(records.get(record.recordId)) : null};
   };
@@ -32,6 +33,7 @@ export function createProvenanceStore() {
       return {status: rejected.length || foundConflicts.length ? 'partial' : 'ok', saved, duplicates, conflicts: foundConflicts, rejected};
     },
     async getById(recordId) { return clone(records.get(String(recordId)) || null); },
+    async getCreatedAt(recordId) { return createdAt.get(String(recordId)) || null; },
     async getByTicker(ticker) { return sorted([...records.values()].filter(record => record.ticker === ticker).map(clone)); },
     async getBySource(sourceType) { return sorted([...records.values()].filter(record => record.sourceType === sourceType).map(clone)); },
     async getByReviewStatus(reviewStatus) { return sorted([...records.values()].filter(record => record.reviewStatus === reviewStatus).map(clone)); },

@@ -3,6 +3,8 @@ import path from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {validateProvenanceTransition, validateProvenanceRecord} from './provenance-validator.js';
 import {PROVENANCE_APPLICATION_ID, PROVENANCE_SCHEMA_VERSION, resolveProvenanceStoragePath} from './provenance-path.js';
+import {classifyProvenanceSqliteError, DEFAULT_PROVENANCE_BUSY_TIMEOUT_MS, normalizeProvenanceBusyTimeout} from './provenance-concurrency.js';
+import {REVIEW_REASON_VALUES, reviewReasonSqlPredicate} from './review-queue-contract.js';
 
 const clone = value => value == null ? value : structuredClone(value);
 const parse = value => JSON.parse(value);
@@ -109,13 +111,66 @@ function ensureDevelopmentPath(dbPath, allowedRoot) {
   return resolved;
 }
 
+const REVIEW_CANDIDATES_SQL = `WITH candidate AS (
+  SELECT 'record' AS item_type, 'record:' || record_id AS review_id, record_id, created_at,
+    provenance_json, NULL AS incoming_json, NULL AS conflict_id,
+    record_type, source_type, ticker, match_method, confidence, review_status,
+    review_status AS effective_review_status, provenance_status, schema_verification,
+    payload_authenticity, registry_verification, published_at, observed_at
+  FROM provenance_records WHERE review_status NOT IN ('verified', 'rejected')
+  UNION ALL
+  SELECT 'storage_conflict' AS item_type, 'conflict:' || conflict_id AS review_id, record_id, created_at,
+    existing_json AS provenance_json, incoming_json, conflict_id,
+    json_extract(existing_json, '$.recordType') AS record_type,
+    json_extract(existing_json, '$.sourceType') AS source_type,
+    json_extract(existing_json, '$.ticker') AS ticker,
+    json_extract(existing_json, '$.matchMethod') AS match_method,
+    json_extract(existing_json, '$.confidence') AS confidence,
+    json_extract(existing_json, '$.reviewStatus') AS review_status,
+    'conflict' AS effective_review_status,
+    json_extract(existing_json, '$.provenanceStatus') AS provenance_status,
+    json_extract(existing_json, '$.schemaVerification') AS schema_verification,
+    json_extract(existing_json, '$.payloadAuthenticity') AS payload_authenticity,
+    json_extract(existing_json, '$.registryVerification') AS registry_verification,
+    json_extract(existing_json, '$.publishedAt') AS published_at,
+    json_extract(existing_json, '$.observedAt') AS observed_at
+  FROM provenance_conflicts
+)`;
+
+function reviewWhere(filters = {}) {
+  const clauses = [];
+  const parameters = [];
+  const add = (clause, value) => { clauses.push(clause); parameters.push(value); };
+  if (filters.ticker) add('ticker = ?', filters.ticker);
+  if (filters.recordType) add('record_type = ?', filters.recordType);
+  if (filters.sourceType) add('source_type = ?', filters.sourceType);
+  if (filters.confidence) add('confidence = ?', filters.confidence);
+  if (filters.reviewStatus) add('effective_review_status = ?', filters.reviewStatus);
+  if (filters.schemaVerification) add('schema_verification = ?', filters.schemaVerification);
+  if (filters.payloadAuthenticity) add('payload_authenticity = ?', filters.payloadAuthenticity);
+  if (filters.registryVerification) add('registry_verification = ?', filters.registryVerification);
+  if (filters.publishedFrom) add("substr(published_at, 1, 10) >= ?", filters.publishedFrom.slice(0, 10));
+  if (filters.publishedTo) add("substr(published_at, 1, 10) <= ?", filters.publishedTo.slice(0, 10));
+  if (filters.reviewReason) {
+    if (!REVIEW_REASON_VALUES.includes(filters.reviewReason)) throw new Error(`review_reason_unknown:${filters.reviewReason}`);
+    clauses.push(reviewReasonSqlPredicate(filters.reviewReason, 'candidate'));
+  }
+  return {sql: clauses.length ? ` WHERE ${clauses.join(' AND ')}` : '', parameters};
+}
+
 /** Open only an explicitly supplied file under a dedicated OS temporary root. */
-export function createProvenanceSQLiteStore({dbPath, allowedRoot} = {}) {
+export function createProvenanceSQLiteStore({dbPath, allowedRoot, busyTimeoutMs = DEFAULT_PROVENANCE_BUSY_TIMEOUT_MS} = {}) {
+  const busyTimeout = normalizeProvenanceBusyTimeout(busyTimeoutMs);
   const resolvedPath = ensureDevelopmentPath(dbPath, allowedRoot);
   let db;
   try {
     db = new DatabaseSync(resolvedPath);
-    db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL;');
+    db.exec(`PRAGMA foreign_keys = ON; PRAGMA busy_timeout = ${busyTimeout}; PRAGMA synchronous = FULL;`);
+    // Avoid requesting a journal-mode transition on every connection. On a DB
+    // already in WAL mode that transition can itself fail while another process
+    // holds a write lock, before save() can return a classified busy error.
+    const journalMode = db.prepare('PRAGMA journal_mode').get().journal_mode;
+    if (journalMode !== 'wal') db.prepare('PRAGMA journal_mode = WAL').get();
     const metadata = schemaMetadata(db);
     if (metadata.applicationId === 0 && metadata.version === 0 && dbEmpty(db)) {
       initializeProvenanceSchema(db);
@@ -135,7 +190,7 @@ export function createProvenanceSQLiteStore({dbPath, allowedRoot} = {}) {
       if (result.saved.length) return {...result.saved[0], status: 'inserted'};
       if (result.duplicates.length) return {...result.duplicates[0], status: 'duplicate'};
       if (result.conflicts.length) return {...result.conflicts[0], status: 'conflict'};
-      return {...(result.rejected[0] || {}), status: result.status === 'error' ? 'error' : 'rejected'};
+      return {...(result.rejected[0] || {}), ...(result.errorType ? {errorType: result.errorType} : {}), status: result.status === 'error' ? 'error' : 'rejected'};
     },
     async saveMany(inputs) {
       if (!Array.isArray(inputs)) return {status: 'rejected', saved: [], duplicates: [], conflicts: [], rejected: [{reasons: ['records_must_be_array']}]};
@@ -169,7 +224,8 @@ export function createProvenanceSQLiteStore({dbPath, allowedRoot} = {}) {
       } catch (error) {
         try { db.exec('ROLLBACK'); } catch {}
         if (error.provenanceValidationFailure) return {status: 'rolled_back', saved: [], duplicates: [], conflicts: [], rejected};
-        return {status: 'error', saved: [], duplicates: [], conflicts: [], rejected: [{index, reasons: ['provenance_sqlite_transaction_failed', error?.message || 'unknown_error']}]};
+        const classified = classifyProvenanceSqliteError(error);
+        return {status: 'error', errorType: classified.errorType, saved: [], duplicates: [], conflicts: [], rejected: [{index, reasons: [classified.reason, error?.message || 'unknown_error']}]};
       }
     },
     async getById(recordId) { return readRow(db.prepare('SELECT provenance_json FROM provenance_records WHERE record_id = ?').get(String(recordId))); },
@@ -178,6 +234,25 @@ export function createProvenanceSQLiteStore({dbPath, allowedRoot} = {}) {
     async getByReviewStatus(reviewStatus) { return statementReadMany(db, 'SELECT provenance_json FROM provenance_records WHERE review_status = ?', reviewStatus); },
     async list() { return canonical(db.prepare('SELECT provenance_json FROM provenance_records').all().map(readRow).filter(Boolean)); },
     async getConflicts() { return db.prepare('SELECT conflict_id, record_id, reasons_json, existing_json, incoming_json, created_at FROM provenance_conflicts ORDER BY conflict_id').all().map(row => ({conflictId: row.conflict_id, recordId: row.record_id, reasons: parse(row.reasons_json), existing: parse(row.existing_json), incoming: parse(row.incoming_json), createdAt: row.created_at})); },
+    async queryReviewQueueRows({filters = {}, limit = 50, offset = 0} = {}) {
+      const where = reviewWhere(filters);
+      const total = db.prepare(`${REVIEW_CANDIDATES_SQL} SELECT count(*) AS count FROM candidate${where.sql}`).get(...where.parameters).count;
+      const rows = db.prepare(`${REVIEW_CANDIDATES_SQL} SELECT * FROM candidate${where.sql} ORDER BY created_at DESC, review_id ASC LIMIT ? OFFSET ?`).all(...where.parameters, limit, offset);
+      const statusRows = db.prepare(`${REVIEW_CANDIDATES_SQL} SELECT effective_review_status, count(*) AS count FROM candidate${where.sql} GROUP BY effective_review_status`).all(...where.parameters);
+      const sourceRows = db.prepare(`${REVIEW_CANDIDATES_SQL} SELECT source_type, count(*) AS count FROM candidate${where.sql} GROUP BY source_type`).all(...where.parameters);
+      const reasonCounts = {};
+      for (const reason of REVIEW_REASON_VALUES) {
+        const reasonWhere = reviewWhere({...filters, reviewReason: reason});
+        reasonCounts[reason] = db.prepare(`${REVIEW_CANDIDATES_SQL} SELECT count(*) AS count FROM candidate${reasonWhere.sql}`).get(...reasonWhere.parameters).count;
+      }
+      return {
+        total,
+        rows: rows.map(row => ({reviewId: row.review_id, itemType: row.item_type, recordId: row.record_id, createdAt: row.created_at, record: parse(row.provenance_json), conflictingEvidence: row.incoming_json ? parse(row.incoming_json) : null, conflictId: row.conflict_id})),
+        statusCounts: Object.fromEntries(statusRows.map(row => [row.effective_review_status, row.count])),
+        sourceCounts: Object.fromEntries(sourceRows.map(row => [row.source_type || 'unknown', row.count])),
+        reasonCounts
+      };
+    },
     async integrityCheck() { return db.prepare('PRAGMA integrity_check').all().map(row => row.integrity_check); },
     async close() { db.close(); },
     get size() { return db.prepare('SELECT count(*) AS count FROM provenance_records').get().count; }
