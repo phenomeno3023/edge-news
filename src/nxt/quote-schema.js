@@ -28,7 +28,8 @@ export function calculateChangeRate(price, basePrice) {
 export function validateQuote(input, {
   now = new Date(),
   maxAgeMs = DEFAULT_MAX_QUOTE_AGE_MS,
-  maxFutureSkewMs = DEFAULT_MAX_FUTURE_SKEW_MS
+  maxFutureSkewMs = DEFAULT_MAX_FUTURE_SKEW_MS,
+  validateChangeRate = true
 } = {}) {
   const errors = [];
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -65,7 +66,7 @@ export function validateQuote(input, {
   if (Number.isFinite(input.tradingValue) && input.tradingValue < 0) errors.push('invalid_tradingValue');
 
   const calculatedChangeRate = calculateChangeRate(input.price, input.basePrice);
-  if (Number.isFinite(input.changeRate) && calculatedChangeRate !== null &&
+  if (validateChangeRate && Number.isFinite(input.changeRate) && calculatedChangeRate !== null &&
       Math.abs(input.changeRate - calculatedChangeRate) > 0.01 + Number.EPSILON) {
     errors.push('changeRate_mismatch');
   }
@@ -95,7 +96,10 @@ export function validateQuote(input, {
       session,
       price: input.price,
       basePrice: input.basePrice,
-      changeRate: calculatedChangeRate,
+      // Provider percentages can follow venue-specific rounding/reference rules.
+      // Preserve the reported value unless the caller explicitly requested the
+      // local percentage calculation check (the default remains unchanged).
+      changeRate: validateChangeRate ? calculatedChangeRate : input.changeRate,
       volume: input.volume,
       tradingValue: input.tradingValue,
       timestamp: new Date(timestampMs).toISOString(),
