@@ -18,7 +18,7 @@ const makeRecord = (id, title = `합성 기사 ${id}`) => ({
   inputDataType:'synthetic_fixture', normalizationVersion:'1', provenanceStatus:'legacy_unknown', provenanceWarnings:[],
   legacyFields:{title,url:`https://news.example.test/${id}`,source:'synthetic RSS',category:'',grade:null,impact:'',risks:'',sourceLinks:[]}, documentedSourceEvidence:null
 });
-async function queueOf(records = [makeRecord('a')]) { const store=createProvenanceStore({clock:()=>now}); await store.saveMany(records); return queryReviewQueue(store,{}, {now}); }
+async function queueOf(records = [makeRecord('a')]) { const store=createProvenanceStore({clock:()=>now}); await store.saveMany(records); return queryReviewQueue(store,{}, {now:new Date(now)}); }
 
 test('JSON export contains a versioned fixture envelope and total/returned counts', async () => {
   const payload=buildReviewQueueExport(await queueOf(),{dataMode:'synthetic_fixture',generatedAt:now});
