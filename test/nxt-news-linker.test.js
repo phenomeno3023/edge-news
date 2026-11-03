@@ -269,4 +269,3 @@ test('기사와 공시를 종목별 이벤트 타임라인에 함께 반영한�
   assert.equal(output.items[0].timeline.causeConfirmed, false);
   assert.match(output.items[0].analysisNotes.join(' '), /상승 원인을 입증하지 않습니다/);
 });
-
