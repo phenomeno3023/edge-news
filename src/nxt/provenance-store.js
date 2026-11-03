@@ -16,6 +16,7 @@ export function createProvenanceStore() {
     return {...result, record: result.accepted ? clone(records.get(record.recordId)) : null};
   };
   return Object.freeze({
+    storageType: 'memory',
     async save(input) { return saveRecord(input); },
     async saveMany(inputs) {
       if (!Array.isArray(inputs)) return {status: 'rejected', saved: [], duplicates: [], conflicts: [], rejected: [{reasons: ['records_must_be_array']}]};

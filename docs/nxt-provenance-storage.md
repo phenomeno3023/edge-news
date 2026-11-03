@@ -1,56 +1,52 @@
-# NXT 뉴스·공시 Provenance 격리 저장
+# NXT 뉴스·공시 Provenance 저장소
 
-## 목적과 범위
+## 목적과 경계
 
-이 모듈은 STEP 56의 기존 저장 행 정규화와 TOP10 통합 결과 사이에서 종목 매칭의 근거·검증 수준·검토 상태를 보존한다. 저장소는 실행 프로세스 안의 메모리 Map이며, SQLite 파일을 열거나 생성하지 않는다. 프로세스 종료 뒤 보존되는 운영 저장소가 아니며, 실제 운영 DB 스키마 변경 전 계약과 동작을 검증하기 위한 개발 어댑터다.
+STEP 57의 메모리 저장소를 유지하면서 개발·테스트용 SQLite 영속 어댑터를 추가한다. SQLite는 명시적으로 지정한 DB 파일만 열며, DB 파일과 허용 루트는 OS 임시 디렉터리 아래에 있어야 한다. 운영 `data/edge-news.sqlite`, `DB_PATH`, 운영 데이터 사본은 열거나 복사하거나 마이그레이션하지 않는다.
 
-## 데이터 계약
+메모리와 SQLite 저장소는 `save`, `saveMany`, `getById`, `getByTicker`, `getBySource`, `getByReviewStatus`, `list`, `getConflicts`, `close` 인터페이스를 공유한다. `createProvenanceStorageAdapter({backend:'memory'})`가 기본이며, SQLite는 `{backend:'sqlite', dbPath, allowedRoot}`를 모두 명시해야 한다.
 
-`src/nxt/provenance-contract.js`는 다음 정보를 포함하는 버전 1 envelope를 만든다.
+## 스키마와 보존
 
-| 영역 | 보존 필드 |
-| --- | --- |
-| 레코드 원천 | `recordId`, `recordType`, `sourceType`, `sourceName`, `sourceUrl`, `sourceRecordId`, `publishedAt`, `observedAt` |
-| 종목 매칭 | `ticker`, `companyName`, `matchMethod`, `matchedText`, `sourceField`, `evidenceSource`, `confidence`, `reviewStatus`, `ambiguityReason`, `matchedAt` |
-| 검증 수준 | `schemaVerification`, `payloadAuthenticity`, `registryVerification`, `evidenceVersion`, `verifiedAt` |
-| 계보 | `inputDataType`, `normalizationVersion`, `provenanceStatus`, `provenanceWarnings` |
-| 기존 필드 | 제목, URL, 출처, 분류, 등급, 영향, 위험, 발표시각 정확도, DART 접수번호 및 기업 식별자 |
-| DART 문서 구조 평가 | `corp_code`와 `stock_code`를 분리해 저장하고 문서 출처·스키마 상태·payload 진위 상태를 별도 보존 |
+SQLite `application_id`는 ENXT 표식, `user_version=1`이다. `provenance_records`는 ID·원천·ticker·신뢰도·검토 상태·검증 수준·발표 시각 정밀도와 DART `corp_code`, `stock_code`, `rcept_no`, `source_links`를 조회 가능한 열로 보관하고, 계약 전체는 `provenance_json`에 저장한다. `null`, 빈 문자열, 날짜 전용 `YYYY-MM-DD`, 타임존이 있는 시각을 임의 정규화하지 않는다. 날짜 정밀도는 별도 열에 `date`, `timestamp`, `unknown`으로 보존한다.
 
-`publishedAt`은 원래 표현을 보존하며 날짜만 있는 값은 `YYYY-MM-DD`로 유지한다. `observedAt`은 별개의 timezone 포함 확인 시각이다. 기존 저장 행의 `ticker`는 `legacy_unknown`, `confidence=unknown`으로 남는다.
+`provenance_conflicts`는 같은 `recordId`의 상충 입력과 원래 값을 별도로 기록한다. `provenance_legacy_archive`는 합성 구버전 마이그레이션에서 원본 행을 보관한다. DART 보조 열은 기록된 문서 근거의 `corp_code`, `stock_code` 후보 및 실제 저장된 접수번호만 사용한다. 기존 DART ticker를 `stock_code`로 복사하지 않는다.
 
-## 검증 상태는 독립적이다
+## 경로 안전
 
-- `schemaVerification`: 문서에 필드가 정의되어 있는지 여부
-- `payloadAuthenticity`: 현재 payload가 진짜 원천 응답인지 여부
-- `registryVerification`: 코드·기업명이 레지스트리 검증을 통과했는지 여부
-- `reviewStatus`: 기사·공시와 종목의 연결을 확정할 수 있는지 여부
+- `dbPath`와 `allowedRoot`는 절대 경로로 명시한다.
+- `allowedRoot`는 실제 경로 기준으로 OS 임시 루트 아래에 있어야 한다.
+- DB 경로의 상위 디렉터리 심볼릭 링크가 허용 루트 밖을 가리키면 거부한다.
+- DB 파일 자체가 심볼릭 링크이거나 파일이 아닌 경로면 거부한다.
+- 허용 루트 밖의 경로, 기본 운영 SQLite, `DB_PATH`와 일치하는 경로는 허용하지 않는다.
+- 운영 DB를 자동 탐색하거나 복사하는 기능은 없다.
 
-문서가 필드 구조를 정의했다는 사실은 payload 진위를 증명하지 않는다. 문서 fixture는 `DOCUMENTED`와 `UNVERIFIED` payload 진위를 함께 가질 수 있다. `high` 및 `verified` 상태는 공식 코드 방식, 스키마·payload·레지스트리 검증 완료가 함께 있어야 통과한다. 문서 fixture, KIND 후보, legacy ticker는 자동 확정되지 않는다.
+## 트랜잭션, 중복, 충돌
 
-## 저장, 중복, 충돌
+일괄 저장은 `BEGIN IMMEDIATE` 트랜잭션으로 수행한다. 잘못된 envelope가 발견되면 해당 배치 전체를 롤백한다. 동일 ID와 동일 근거는 `duplicate`이며 최초 저장된 `observedAt`이 유지된다. 동일 ID에 ticker·검증 상태 등 근거가 달라지면 기존 행을 바꾸지 않고 충돌 테이블에 입력과 사유를 남긴다. 저장 실패는 충돌과 별도 오류로 반환한다.
 
-`src/nxt/provenance-store.js`의 `createProvenanceStore()`는 저장·재조회·종목별/원천별/검토 상태별 조회를 지원한다. 같은 `recordId`와 동일 envelope는 `duplicate`로 멱등 처리한다. 같은 ID에 다른 envelope가 들어오면 기존 값을 덮어쓰지 않고 `conflict`를 반환해 충돌 목록에 보관한다. 서로 다른 DART 접수번호는 별도 레코드로 남기므로 정정공시를 병합해 지우지 않는다.
+## 백업·복원
 
-## 원천별 처리
+`provenance-backup.js`는 Node SQLite 온라인 백업 API를 사용한다. 실행 중인 데이터베이스 파일을 직접 복사하지 않는다. 백업/복원 대상도 같은 임시 허용 루트 아래의 새로운 파일이어야 하며, 이미 존재하는 대상을 덮어쓰지 않는다. 완료 뒤 application ID, schema version, `PRAGMA integrity_check`를 검사한다.
 
-- 일반 RSS: 저장된 ticker는 후보 연결에만 쓰며 공식 코드 근거로 승격하지 않는다.
-- KIND: 기존 STEP 55 상태대로 원시 필드 계약은 `UNVERIFIED`; 제목·링크·발행시각·ticker만 보존한다.
-- DART: 기존 정규화 행은 원본 `stock_code` 부재를 유지한다. 문서 구조 fixture의 `corp_code`, `stock_code`, `rcept_no`, `rcept_dt` 평가는 별도 보존하고 payload 진위는 `UNVERIFIED`다. `rcept_no`는 종목코드로 취급하지 않는다.
-- 출처 불명: `legacy_unknown`으로 검토 대기한다.
+## 합성 구버전 마이그레이션
 
-## TOP10 통합 및 실행
+`migrateSyntheticLegacyProvenanceDatabase`는 임시 루트 안에서 ENXT application ID, `user_version=0`, `legacy_articles` 테이블을 모두 확인한 합성 DB만 처리한다. 원본 행은 archive에 저장되고 Provenance는 `legacy_unknown`, `confidence=unknown`, `needs_review`로 생성된다. KIND는 계속 `UNVERIFIED`다. DART 접수번호는 식별자로만 보존하며 기업코드나 종목코드로 사용하지 않는다. 기존 문서 근거가 없는 ticker를 공식 근거로 승격하지 않는다. 실패하면 스키마와 데이터가 같은 트랜잭션에서 롤백된다. 현재 버전 DB를 다시 요청하면 데이터 변경 없이 `already_current`를 반환한다.
 
-`src/nxt/provenance-integration.js`가 STEP 56 정규화 → envelope 생성 → 메모리 저장 → 재조회 → 신뢰도와 상태 비교 → STEP 56 TOP10 연결 → 통합 계약 검증을 수행한다. Provenance는 뉴스·공시 레코드와 `matchEvidence`에 연결되고 별도 검토 대기열에도 보존된다. 순위·세션·Mock quote 수치는 변경하지 않는다.
+## 파이프라인 연결
 
-실행:
+`runProvenanceIntegration`은 기존 메모리 저장소를 기본값으로 유지하며 SQLite 저장소를 주입할 수 있다. 정규화 → Provenance 생성 → 영속 저장 → 재조회 → 왕복 비교 → STEP 56 TOP10 연결 순서로 실행된다. 저장 성공은 매칭 신뢰도를 높이지 않는다. KIND `UNVERIFIED`, DART `DOCUMENTED` 스키마와 `UNVERIFIED` payload 진위, 기존 ticker `legacy_unknown`, 검토 대기 상태를 보존한다. 세션·순위·Mock 시세와 원문 링크도 유지한다.
+
+## 개발 검증
 
 ```sh
-node scripts/run-nxt-provenance.js
+node scripts/run-nxt-provenance-sqlite.js
+node --test test/nxt-provenance-sqlite.test.js
+npm test
 ```
 
-스크립트는 미리보기의 합성 fixture만 사용하고 네트워크·API·운영 SQLite를 사용하지 않는다. `persisted`는 실행 중 메모리 저장 후 재조회한 수치이며 영속 디스크 저장을 뜻하지 않는다.
+실행 스크립트는 OS 임시 디렉터리에 DB를 만들고, 저장 연결을 닫은 뒤 별도 Node 프로세스로 재연결해 저장 전 envelope와 비교한다. 또한 온라인 백업, 새 파일 복원, 무결성 검사, 합성 v0 마이그레이션을 수행하고 마지막에 임시 파일을 제거한다. 네트워크 요청은 하지 않는다.
 
-## 제한 및 다음 단계
+## 한계와 운영 전환 조건
 
-이번 구현은 왕복 저장 계약을 격리 검증하는 단계다. 프로세스 간 영속성, 운영 SQLite 마이그레이션, 실제 DART payload 인증, KIND 공식 RSS 스키마, 실제 원천 재배포 권한은 검증하지 않았다. 향후 영속 저장소를 설계할 때는 이 계약을 별도 테이블/컬럼에 연결하고 마이그레이션·백업·기존 레코드 backfill 계획을 별도 승인받아야 한다. 과거 ticker의 누락된 원본 근거는 복원할 수 없으므로 추정 backfill을 하지 않는다.
+이 구현은 개발 전용 SQLite 어댑터와 합성 데이터 검증이다. 실제 운영 SQLite의 상태·스키마·백업·마이그레이션은 확인하거나 변경하지 않았다. 운영 저장소 전환에는 별도 설계·승인, 실제 배포 전 백업 정책, 잠금·복구 계획, 운영 데이터 권한 검토 및 독립적인 마이그레이션 검증이 필요하다. KIND의 원시 RSS 필드 계약과 DART payload 진위는 계속 미확인이다.

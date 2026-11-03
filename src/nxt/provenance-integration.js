@@ -74,7 +74,9 @@ export async function runProvenanceIntegration({top10Result, articleRows = [], d
     result: {...result, contract},
     storage: {writeResult: {status: writeResult.status, inserted: writeResult.saved.length, duplicates: writeResult.duplicates.length, conflicts: writeResult.conflicts.length, rejected: writeResult.rejected.length}, persisted: readBack.length, readFailures, roundTripMismatches},
     warnings: [
-      'Provenance 저장은 메모리 기반 격리 저장소에서만 수행했습니다. 운영 SQLite를 열지 않았습니다.',
+      store.storageType === 'sqlite'
+        ? 'Provenance 저장은 허용된 임시 디렉터리의 개발용 SQLite에서 수행했습니다. 운영 SQLite는 열지 않았습니다.'
+        : 'Provenance 저장은 메모리 기반 격리 저장소에서 수행했습니다. SQLite 파일을 열지 않았습니다.',
       ...(normalized.kindAssessments.length ? ['KIND 매칭 근거는 UNVERIFIED 상태로 검토 대기시켰습니다.'] : []),
       ...(normalized.dartAssessments.length ? ['DART 문서 필드 검증과 payload 진위 검증을 분리했으며 문서 fixture를 live 검증으로 표시하지 않았습니다.'] : []),
       ...(readFailures.length ? ['Provenance 저장소에서 일부 레코드를 재조회하지 못해 결과를 PARTIAL로 표시했습니다.'] : []),
