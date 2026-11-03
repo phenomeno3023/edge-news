@@ -1,6 +1,7 @@
 import {normalizeEventTime} from '../../src/nxt/event-timeline.js';
 import {buildMockSnapshot} from './mock-data.js';
 import {buildReviewQueueExport} from '../../src/nxt/review-export-contract.js';
+import {createNxtUiState, sessionForNavigationKey, transitionNxtUiState} from './ui-state.js';
 
 export function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, character => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[character]));
@@ -43,7 +44,7 @@ function mockBanner() {
 
 function sessionButton(session, active) {
   const label = session === 'PRE' ? '프리마켓 PRE' : '애프터마켓 AFTER';
-  return `<button class="session-tab" type="button" role="tab" aria-selected="${active}" data-session="${session}">${label}</button>`;
+  return `<button class="session-tab" type="button" role="tab" aria-selected="${active}" data-session="${session}" aria-controls="nxt-session-panel" tabindex="${active ? 0 : -1}">${label}</button>`;
 }
 
 const STATUS_LABELS = Object.freeze({
@@ -105,8 +106,12 @@ export function validatePreviewSnapshot(snapshot) {
   for (const key of ['PRE', 'AFTER']) {
     const session = snapshot.sessions?.[key];
     if (!object(session) || session.status !== 'ok' || !Array.isArray(session.items)) { issues.push(`session_${key}_invalid`); continue; }
+    if (session.items.length > 10) issues.push(`session_${key}_too_many_items`);
+    const tickers = new Set();
     for (const [index, item] of session.items.entries()) {
-      if (!object(item) || typeof item.ticker !== 'string' || !object(item.quote) || item.quote.dataMode !== 'mock') issues.push(`session_${key}_item_${index}_invalid`);
+      if (!object(item) || !/^\d{6}$/.test(item.ticker || '') || !object(item.quote) || item.quote.dataMode !== 'mock' || item.quote.symbol !== item.ticker || item.session !== key || !Number.isInteger(item.rank) || item.rank < 1 || item.rank > 10) issues.push(`session_${key}_item_${index}_invalid`);
+      if (typeof item?.ticker === 'string' && tickers.has(item.ticker)) issues.push(`session_${key}_duplicate_ticker`);
+      if (typeof item?.ticker === 'string') tickers.add(item.ticker);
       for (const field of ['relatedNews', 'kindDisclosures', 'dartDisclosures', 'reviewCandidates']) {
         if (!Array.isArray(item?.[field])) issues.push(`session_${key}_${field}_invalid`);
         else for (const record of item[field]) {
@@ -120,10 +125,18 @@ export function validatePreviewSnapshot(snapshot) {
   if (!Array.isArray(snapshot.reviewQueue?.items) || !Number.isFinite(snapshot.reviewQueue?.page?.total)) issues.push('review_queue_invalid');
   if (!Array.isArray(snapshot.unassignedReviewItems)) issues.push('unassigned_invalid');
   if (!Number.isFinite(snapshot.validation?.confirmedCount)) issues.push('validation_counts_invalid');
+  const queueIds = new Set();
   for (const item of snapshot.reviewQueue?.items || []) {
     if (!object(item) || typeof item.reviewId !== 'string' || !Array.isArray(item.reviewReasons)) issues.push('review_item_invalid');
+    if (typeof item?.reviewId === 'string' && queueIds.has(item.reviewId)) issues.push('review_item_duplicate_id');
+    if (typeof item?.reviewId === 'string') queueIds.add(item.reviewId);
   }
-  for (const item of snapshot.unassignedReviewItems || []) if (!object(item) || typeof item.reviewId !== 'string' || !Array.isArray(item.reviewReasons)) issues.push('unassigned_item_invalid');
+  const unassignedIds = new Set();
+  for (const item of snapshot.unassignedReviewItems || []) {
+    if (!object(item) || typeof item.reviewId !== 'string' || !Array.isArray(item.reviewReasons)) issues.push('unassigned_item_invalid');
+    if (typeof item?.reviewId === 'string' && unassignedIds.has(item.reviewId)) issues.push('unassigned_item_duplicate_id');
+    if (typeof item?.reviewId === 'string') unassignedIds.add(item.reviewId);
+  }
   return {valid: issues.length === 0, issues: [...new Set(issues)]};
 }
 
@@ -295,17 +308,21 @@ function renderIntegrationTop10(snapshot, state) {
     </button>`;
   }).join('');
   return `<section class="ranking-summary"><div><strong>${state.session === 'PRE' ? '프리마켓' : '애프터마켓'} 상승률 TOP10</strong><span>${items.length}개 · 시세와 연결 자료는 모두 개발용 합성 Fixture</span></div><span class="exclude-count">확정 연결 ${snapshot.validation?.confirmedCount ?? 0}건</span></section>
-    ${items.length ? `<section class="quote-list" aria-label="${state.session} 상승률 순위">${rows}</section>` : '<section class="state-card"><h2>이 세션의 데이터가 없습니다</h2></section>'}`;
+    ${items.length ? `<section id="nxt-session-panel" class="quote-list" aria-label="${state.session} 상승률 순위">${rows}</section>` : '<section id="nxt-session-panel" class="state-card"><h2>이 세션의 데이터가 없습니다</h2></section>'}`;
 }
 
-export function renderReviewApplication(snapshot, {screen = 'top10', session = 'PRE', selectedSymbol = null, selectedReviewId = null, filters = {}, offset = 0, now = new Date()} = {}) {
+export function renderReviewApplication(snapshot, {screen = 'top10', session = 'PRE', selectedSymbol = null, selectedReviewId = null, filters = {}, offset = 0, loading = false, now = new Date()} = {}) {
   const nowMs = now instanceof Date ? now.getTime() : Date.parse(now);
   const stale = !snapshot?.generatedAt || !Number.isFinite(Date.parse(snapshot.generatedAt)) || nowMs - Date.parse(snapshot.generatedAt) > (snapshot.snapshotMaxAgeMs || 0) || nowMs < Date.parse(snapshot.generatedAt);
   const validation = validatePreviewSnapshot(snapshot);
   let content;
-  if (!validation.valid || stale) {
+  if (!snapshot && loading) {
+    content = '<section class="state-card" role="status"><h2>미리보기 데이터를 불러오는 중입니다</h2></section>';
+  } else if (!snapshot) {
+    content = '<section class="state-card error-state" role="alert"><h2>미리보기 데이터를 불러오지 못했습니다</h2><p>연결 상태를 확인하고 다시 시도해 주세요.</p><button type="button" class="primary-button" data-retry>다시 불러오기</button></section>';
+  } else if (!validation.valid || stale) {
     const staleOnly = validation.valid && stale;
-    content = `<section class="state-card ${staleOnly ? 'stale-state' : 'error-state'}"><h2>${staleOnly ? '개발 스냅샷이 오래됐습니다' : '개발 스냅샷을 읽지 못했습니다'}</h2><p>순위와 검토 결과를 현재 데이터처럼 보여주지 않습니다. <code>node scripts/build-nxt-preview-data.js</code>를 실행하고 페이지를 새로고침해 주세요.</p></section>`;
+    content = `<section class="state-card ${staleOnly ? 'stale-state' : 'error-state'}" role="alert"><h2>${staleOnly ? '개발 스냅샷이 오래됐습니다' : '개발 스냅샷을 읽지 못했습니다'}</h2><p>${staleOnly ? '스냅샷이 만료돼 순위와 검토 결과를 현재 데이터처럼 보여주지 않습니다.' : '스냅샷 형식이 올바르지 않아 순위와 검토 결과를 표시하지 않습니다.'} <code>node scripts/build-nxt-preview-data.js</code>를 실행하고 페이지를 새로고침해 주세요.</p></section>`;
   } else if (screen === 'queue') content = renderQueueScreen(snapshot, {filters, offset, selectedReviewId});
   else if (screen === 'unassigned') content = renderQueueScreen(snapshot, {filters, offset, selectedReviewId}, true);
   else content = `${!selectedSymbol ? `<nav class="session-tabs" role="tablist" aria-label="NXT 거래 세션">${sessionButton('PRE', session === 'PRE')}${sessionButton('AFTER', session === 'AFTER')}</nav>` : ''}${renderIntegrationTop10(snapshot, {session, selectedSymbol})}`;
@@ -313,12 +330,13 @@ export function renderReviewApplication(snapshot, {screen = 'top10', session = '
   return `<div class="page-shell"><header class="topbar"><a class="brand" href="./index.html" aria-label="EDGE NXT 미리보기 홈"><span class="brand-mark">E</span><span><strong>EDGE NXT</strong><small>뉴스·공시 검토 미리보기</small></span></a><span class="preview-tag">DEV PREVIEW</span></header>
     <main class="content"><aside class="mock-banner" role="note"><strong>개발용 미리보기 — 가상 시세 데이터(MOCK)</strong><span>뉴스·공시 연결은 검증 전 후보를 포함하며 실제 투자 판단에 사용할 수 없습니다.</span></aside>
     <section class="intro"><p class="eyebrow">NXT MARKET WATCH · SYNTHETIC FIXTURE</p><h1>순위와 근거를<br><em>함께 확인합니다.</em></h1><p>확정 연결 ${snapshot?.validation?.confirmedCount ?? 0}건 · KIND 원시 필드 ${escapeHtml(snapshot?.validation?.kindSchema || 'UNVERIFIED')} · DART 문서 구조 ${escapeHtml(snapshot?.validation?.dartSchema || 'UNVERIFIED')} · 응답 진위 ${escapeHtml(snapshot?.validation?.dartPayloadAuthenticity || 'UNVERIFIED')}</p></section>
-    <nav class="view-tabs" aria-label="미리보기 화면">${top10Nav}<button class="view-tab" type="button" data-screen="queue" aria-current="${screen === 'queue' ? 'page' : 'false'}">검토 대기열 <span>${snapshot?.reviewQueue?.page?.total ?? 0}</span></button><button class="view-tab" type="button" data-screen="unassigned" aria-current="${screen === 'unassigned' ? 'page' : 'false'}">미배정 <span>${snapshot?.unassignedReviewItems?.length ?? 0}</span></button></nav>
+      <nav class="view-tabs" aria-label="미리보기 화면">${top10Nav}<button class="view-tab" type="button" data-screen="queue" aria-current="${screen === 'queue' ? 'page' : 'false'}">검토 대기열 <span>${snapshot?.reviewQueue?.page?.total ?? 0}</span></button><button class="view-tab" type="button" data-screen="unassigned" aria-current="${screen === 'unassigned' ? 'page' : 'false'}">미배정 <span>${snapshot?.unassignedReviewItems?.length ?? 0}</span></button></nav>
     ${screen === 'top10' && !selectedSymbol ? `<div class="snapshot-meta"><span>스냅샷 생성 <strong>${escapeHtml(formatEventTime(snapshot?.generatedAt).label)}</strong></span><span>데이터 모드 <strong>MOCK / SYNTHETIC</strong></span></div>` : ''}
     ${content}<footer class="disclaimer">확정되지 않은 뉴스·공시는 후보로 표시합니다. KIND는 UNVERIFIED이며 DART 문서 구조 확인은 실제 응답의 진위를 보장하지 않습니다. 시각적 선후관계만으로 상승 원인을 단정하지 않습니다.</footer></main></div>`;
 }
 
 export function makeReviewExport(snapshot, filters = {}, {scope = 'queue'} = {}) {
+  if (snapshot?.dataMode !== 'mock' || !validatePreviewSnapshot(snapshot).valid) throw new Error('preview_export_requires_valid_mock_snapshot');
   const sourceItems = scope === 'unassigned' ? snapshot?.unassignedReviewItems || [] : snapshot?.reviewQueue?.items || [];
   const filtered = filterReviewQueue(sourceItems, filters);
   const limited = filtered.slice(0, 100);
@@ -392,7 +410,7 @@ export function renderPreview(snapshot, {session = 'PRE', selectedSymbol = null,
   } else {
     const count = sessionData.items.length;
     content = `<section class="ranking-summary"><div><strong>${validSession === 'PRE' ? '프리마켓' : '애프터마켓'} 상승률 TOP10</strong><span>${count < 10 ? `유효 데이터 ${count}개 · 10개 미만` : '유효 데이터 상위 10개'}</span></div><span class="exclude-count">잘못된 데이터 ${number(sessionData.excluded?.invalid || 0)}건 · 오래된 데이터 ${number(sessionData.excluded?.stale || 0)}건 제외</span></section>
-      <section class="quote-list" aria-label="${validSession} 상승률 순위">${sessionData.items.map(quoteCard).join('')}</section>`;
+      <section id="nxt-session-panel" class="quote-list" aria-label="${validSession} 상승률 순위">${sessionData.items.map(quoteCard).join('')}</section>`;
   }
 
   return `<div class="page-shell">
@@ -431,10 +449,15 @@ export function renderDetail(item) {
 if (typeof document !== 'undefined') {
   const app = document.querySelector('#app');
   if (app) {
-    const state = {screen: 'top10', session: 'PRE', selectedSymbol: null, selectedReviewId: null, filters: {}, offset: 0};
+    const state = createNxtUiState();
     let snapshot = null;
     let loadError = false;
-    const draw = () => { app.innerHTML = renderReviewApplication(loadError ? null : snapshot, {...state, now: new Date()}); };
+    let loading = false;
+    const draw = () => { app.innerHTML = renderReviewApplication(loadError ? null : snapshot, {...state, loading, now: new Date()}); };
+    const apply = (action, options) => {
+      Object.assign(state, transitionNxtUiState(state, action, options));
+      draw();
+    };
     const exportJson = () => {
       try {
         const payload = makeReviewExport(snapshot, state.filters, {scope: state.screen});
@@ -443,49 +466,62 @@ if (typeof document !== 'undefined') {
         const href = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = href; link.download = `nxt-review-${new Date().toISOString().slice(0,10)}.json`;
-        document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(href);
-      } catch { state.exportError = true; draw(); }
+        document.body.append(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+        apply({type: 'export-ok'});
+      } catch { apply({type: 'export-error'}); }
+    };
+    const loadSnapshot = () => {
+      loadError = false;
+      loading = true;
+      draw();
+      fetch('./review-snapshot.json', {cache: 'no-store'})
+        .then(response => { if (!response.ok) throw new Error('preview_snapshot_http_error'); return response.json(); })
+        .then(data => { if (!validatePreviewSnapshot(data).valid) throw new Error('preview_snapshot_contract_invalid'); snapshot = data; loadError = false; loading = false; draw(); })
+        .catch(() => { snapshot = null; loadError = true; loading = false; draw(); });
     };
     app.addEventListener('click', event => {
       const target = event.target;
       const sessionButton = target.closest('[data-session]');
-      if (sessionButton) { state.session = sessionButton.dataset.session; state.selectedSymbol = null; draw(); return; }
+      if (sessionButton) { apply({type: 'select-session', session: sessionButton.dataset.session}); return; }
       const screenButton = target.closest('[data-screen]');
-      if (screenButton) { state.screen = screenButton.dataset.screen; state.selectedSymbol = null; state.selectedReviewId = null; state.offset = 0; draw(); return; }
+      if (screenButton) { apply({type: 'select-screen', screen: screenButton.dataset.screen}); return; }
       const exportButton = target.closest('[data-export-json]');
       if (exportButton) { exportJson(); return; }
+      if (target.closest('[data-retry]')) { loadSnapshot(); return; }
       const clearButton = target.closest('[data-clear-filters]');
-      if (clearButton) { state.filters = {}; state.offset = 0; state.selectedReviewId = null; draw(); return; }
+      if (clearButton) { apply({type: 'clear-filters'}); return; }
       const pageButton = target.closest('[data-page]');
       if (pageButton) {
         const unassigned = state.screen === 'unassigned';
         const items = filterReviewQueue(unassigned ? snapshot.unassignedReviewItems : snapshot.reviewQueue.items, state.filters);
-        const page = paginateReviewQueue(items, {limit: 20, offset: state.offset});
-        state.offset = pageButton.dataset.page === 'next' ? Math.min(state.offset + page.limit, Math.max(0, page.total - 1)) : Math.max(0, state.offset - page.limit);
-        state.selectedReviewId = null; draw(); return;
+        apply({type: 'move-page', direction: pageButton.dataset.page === 'next' ? 'next' : 'previous'}, {filteredCount: items.length, pageSize: 20}); return;
       }
       const reviewButton = target.closest('[data-review-id]');
       if (reviewButton) {
-        state.selectedReviewId = reviewButton.dataset.reviewId;
-        if (state.screen === 'top10') state.screen = 'queue';
-        draw(); return;
+        apply({type: 'select-review', reviewId: reviewButton.dataset.reviewId}); return;
       }
       const quoteButton = target.closest('[data-symbol]');
-      if (quoteButton) { state.screen = 'top10'; state.selectedSymbol = quoteButton.dataset.symbol; draw(); return; }
-      if (target.closest('[data-back]')) { state.selectedSymbol = null; state.selectedReviewId = null; draw(); }
+      if (quoteButton) { apply({type: 'select-symbol', ticker: quoteButton.dataset.symbol}); return; }
+      if (target.closest('[data-back]')) apply({type: 'back-to-top10'});
     });
     app.addEventListener('change', event => {
       const control = event.target.closest('[data-filter]');
       if (!control) return;
       const key = control.dataset.filter;
-      if (control.value) state.filters[key] = control.value; else delete state.filters[key];
-      state.offset = 0; state.selectedReviewId = null; draw();
+      apply({type: 'set-filter', key, value: control.value});
+    });
+    app.addEventListener('keydown', event => {
+      const tab = event.target.closest('[data-session]');
+      if (!tab || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const nextSession = sessionForNavigationKey(state.session, event.key);
+      if (!nextSession) return;
+      Object.assign(state, transitionNxtUiState(state, {type: 'select-session', session: nextSession}));
+      draw();
+      app.querySelector(`[data-session="${nextSession}"]`)?.focus();
     });
     draw();
-    fetch('./review-snapshot.json', {cache: 'no-store'})
-      .then(response => { if (!response.ok) throw new Error('preview_snapshot_http_error'); return response.json(); })
-      .then(data => { if (!validatePreviewSnapshot(data).valid) throw new Error('preview_snapshot_contract_invalid'); snapshot = data; draw(); })
-      .catch(() => { loadError = true; draw(); });
+    loadSnapshot();
     const freshnessTimer = window.setInterval(draw, 60000);
     window.addEventListener('pagehide', () => window.clearInterval(freshnessTimer), {once: true});
   }
