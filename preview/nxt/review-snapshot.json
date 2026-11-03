@@ -1,0 +1,3241 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-03T09:37:51.603Z",
+  "snapshotMaxAgeMs": 3600000,
+  "dataMode": "mock",
+  "sourceLabel": "합성 Mock 시세·뉴스·공시 및 Provenance 검토 fixture",
+  "warning": "개발용 미리보기 — 가상 시세 데이터(MOCK). 뉴스·공시 연결은 검증 전 후보를 포함합니다.",
+  "validation": {
+    "confirmedCount": 0,
+    "kindSchema": "UNVERIFIED",
+    "dartSchema": "DOCUMENTED",
+    "dartPayloadAuthenticity": "UNVERIFIED",
+    "officialApiCalls": 0,
+    "operatingDatabaseAccess": false,
+    "fixtureCollisionIncluded": true
+  },
+  "sessions": {
+    "PRE": {
+      "status": "ok",
+      "session": "PRE",
+      "dataMode": "mock",
+      "items": [
+        {
+          "rank": 1,
+          "ticker": "990001",
+          "name": "가상종목 A",
+          "session": "PRE",
+          "quote": {
+            "rank": 1,
+            "symbol": "990001",
+            "name": "가상종목 A",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 13488,
+            "basePrice": 12000,
+            "changeRate": 12.4,
+            "volume": 12500,
+            "tradingValue": 168600000,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [
+            {
+              "id": "mock-news-1",
+              "symbol": "990001",
+              "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+              "url": "https://example.com/mock/news/mock-news-1",
+              "source": "합성 테스트 뉴스",
+              "publishedAt": "2026-11-03T08:20:00+09:00",
+              "category": "합성 예시",
+              "grade": "미분류",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "news_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 A",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-news-1",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-1",
+                "sourceRecordId": "mock-news-1",
+                "publishedAt": "2026-11-03T08:20:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            },
+            {
+              "id": "mock-news-2",
+              "symbol": "990001",
+              "title": "[합성 기사] 가상종목 A 업계 전망 예시",
+              "url": "https://example.com/mock/news/mock-news-2",
+              "source": "합성 테스트 뉴스",
+              "publishedAt": "2026-11-03T08:35:00+09:00",
+              "category": "합성 예시",
+              "grade": "미분류",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "news_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 A",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-news-2",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-2",
+                "sourceRecordId": "mock-news-2",
+                "publishedAt": "2026-11-03T08:35:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 A 업계 전망 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "kindDisclosures": [
+            {
+              "id": "mock-kind-1",
+              "symbol": "990001",
+              "title": "[합성 공시] 가상종목 A 공급계약 예시",
+              "url": "https://example.com/mock/kind/1",
+              "provider": "KIND",
+              "publishedAt": "2026-11-03T08:25:00+09:00",
+              "category": "합성 예시",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "kind_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "disclosureIdentity": {
+                "identifierType": "kind_source_url",
+                "identifier": "https://example.com/mock/kind/1",
+                "provesTickerMatch": false,
+                "reviewStatus": "identity_only"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 A",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-kind-1",
+                "recordType": "disclosure",
+                "sourceType": "kind_rss",
+                "sourceName": "kind.krx.co.kr (합성 데이터)",
+                "sourceUrl": "https://example.com/mock/kind/1",
+                "sourceRecordId": "mock-kind-1",
+                "publishedAt": "2026-11-03T08:25:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "unverified",
+                "provenanceWarnings": [
+                  "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 공시] 가상종목 A 공급계약 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "dartDisclosures": [
+            {
+              "id": "mock-dart-provenance-1",
+              "symbol": "990001",
+              "title": "[합성 공시] DART 문서 필드 검토 예시",
+              "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261103000001",
+              "provider": "DART",
+              "publishedAt": "2026-11-03",
+              "category": "합성 예시",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "dart_disclosure",
+              "matchReasons": [
+                "legacy_ticker_provenance_not_available"
+              ],
+              "sourceFieldEvidence": {
+                "source": "DART",
+                "sourceRecordId": "20261103000001",
+                "verificationLevel": "DOCUMENTED",
+                "dataOrigin": "documented_schema_fixture",
+                "payloadAuthenticity": "UNVERIFIED",
+                "ticker": "990001",
+                "matchStatus": "review",
+                "reasons": [
+                  "ticker_not_found_in_verified_registry"
+                ]
+              },
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "disclosureIdentity": {
+                "identifierType": "dart_receipt_number",
+                "identifier": "20261103000001",
+                "provesTickerMatch": false,
+                "reviewStatus": "identity_only"
+              },
+              "matchEvidence": {
+                "matchedText": null,
+                "sourceField": "ticker",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance"
+              },
+              "provenance": {
+                "recordId": "mock-dart-provenance-1",
+                "recordType": "disclosure",
+                "sourceType": "dart_disclosure",
+                "sourceName": "DART",
+                "sourceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261103000001",
+                "sourceRecordId": "20261103000001",
+                "publishedAt": "2026-11-03",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "DOCUMENTED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "문서 구조 fixture이며 실제 응답 진위는 확인되지 않았습니다.",
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": {
+                  "sourceType": "dart_disclosure",
+                  "sourceRecordId": "20261103000001",
+                  "tickerField": "stock_code",
+                  "tickerCandidate": "990001",
+                  "corporateIdField": null,
+                  "corporateId": null,
+                  "schemaVerification": "DOCUMENTED",
+                  "payloadAuthenticity": "UNVERIFIED",
+                  "dataOrigin": "documented_schema_fixture",
+                  "assessmentStatus": "review",
+                  "legacyTickerConflict": false
+                },
+                "legacyFields": {
+                  "title": "[합성 공시] DART 문서 필드 검토 예시",
+                  "dartReceiptId": "20261103000001",
+                  "corporateId": null
+                }
+              }
+            },
+            {
+              "id": "mock-dart-1",
+              "symbol": "990001",
+              "title": "[합성 공시] 가상종목 A 분기보고서 예시",
+              "url": "https://example.com/mock/dart/1",
+              "provider": "DART",
+              "publishedAt": "2026-11-03",
+              "category": "합성 예시",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "dart_disclosure",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "disclosureIdentity": {
+                "identifierType": "unknown_disclosure_identifier",
+                "identifier": null,
+                "provesTickerMatch": false,
+                "reviewStatus": "needs_review"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 A",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-dart-1",
+                "recordType": "disclosure",
+                "sourceType": "dart_disclosure",
+                "sourceName": "DART",
+                "sourceUrl": "https://example.com/mock/dart/1",
+                "sourceRecordId": "mock-dart-1",
+                "publishedAt": "2026-11-03",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 DART 행에는 원본 종목코드 필드가 보존되지 않았습니다.",
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 공시] 가상종목 A 분기보고서 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 3,
+            "relatedDisclosureCandidateCount": 3,
+            "reviewNeededCount": 6,
+            "evidenceMissingCount": 6,
+            "conflictCount": 1,
+            "reviewReasons": [
+              "dart_payload_unverified",
+              "kind_schema_unverified",
+              "legacy_unknown",
+              "official_code_missing",
+              "registry_incomplete",
+              "storage_conflict",
+              "ticker_conflict"
+            ]
+          },
+          "reviewCandidates": [
+            {
+              "reviewId": "conflict:1",
+              "recordId": "mock-news-1",
+              "recordType": "news",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-1",
+              "publishedAt": "2026-11-03T08:20:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "conflict",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "ticker_conflict",
+                "registry_incomplete",
+                "storage_conflict"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": {
+                "recordId": "mock-news-1",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-1",
+                "sourceRecordId": "mock-news-1",
+                "publishedAt": "2026-11-03T08:20:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "000000",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "matchedAt": "2026-11-03T09:37:51.603Z",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "inputDataType": "synthetic_fixture",
+                "normalizationVersion": "1",
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+                  "url": "https://example.com/mock/news/mock-news-1",
+                  "source": "합성 테스트 뉴스",
+                  "category": "합성 예시",
+                  "grade": "미분류",
+                  "impact": "",
+                  "risks": "",
+                  "timeAccuracy": "second",
+                  "sourceLinks": [],
+                  "dartReceiptId": null,
+                  "corporateId": null
+                },
+                "documentedSourceEvidence": null
+              },
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-1",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-dart-1",
+              "recordId": "mock-dart-1",
+              "recordType": "disclosure",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 공시] 가상종목 A 분기보고서 예시",
+              "sourceType": "dart_disclosure",
+              "sourceName": "DART",
+              "sourceUrl": "https://example.com/mock/dart/1",
+              "publishedAt": "2026-11-03",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "dart_payload_unverified",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-dart-1",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 DART 행에는 원본 종목코드 필드가 보존되지 않았습니다.",
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-dart-provenance-1",
+              "recordId": "mock-dart-provenance-1",
+              "recordType": "disclosure",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 공시] DART 문서 필드 검토 예시",
+              "sourceType": "dart_disclosure",
+              "sourceName": "DART",
+              "sourceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261103000001",
+              "publishedAt": "2026-11-03",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "DOCUMENTED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "dart_payload_unverified",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "20261103000001",
+                "documentedSourceEvidence": {
+                  "sourceType": "dart_disclosure",
+                  "sourceRecordId": "20261103000001",
+                  "tickerField": "stock_code",
+                  "tickerCandidate": "990001",
+                  "corporateIdField": null,
+                  "corporateId": null,
+                  "schemaVerification": "DOCUMENTED",
+                  "payloadAuthenticity": "UNVERIFIED",
+                  "dataOrigin": "documented_schema_fixture",
+                  "assessmentStatus": "review",
+                  "legacyTickerConflict": false
+                },
+                "provenanceWarnings": [
+                  "문서 구조 fixture이며 실제 응답 진위는 확인되지 않았습니다.",
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-kind-1",
+              "recordId": "mock-kind-1",
+              "recordType": "disclosure",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 공시] 가상종목 A 공급계약 예시",
+              "sourceType": "kind_rss",
+              "sourceName": "kind.krx.co.kr (합성 데이터)",
+              "sourceUrl": "https://example.com/mock/kind/1",
+              "publishedAt": "2026-11-03T08:25:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "unverified",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "kind_schema_unverified",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-kind-1",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-news-1",
+              "recordId": "mock-news-1",
+              "recordType": "news",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-1",
+              "publishedAt": "2026-11-03T08:20:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-1",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-news-2",
+              "recordId": "mock-news-2",
+              "recordType": "news",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 A 업계 전망 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-2",
+              "publishedAt": "2026-11-03T08:35:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-2",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "rank": 2,
+          "ticker": "990002",
+          "name": "가상종목 B",
+          "session": "PRE",
+          "quote": {
+            "rank": 2,
+            "symbol": "990002",
+            "name": "가상종목 B",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 17519,
+            "basePrice": 15750,
+            "changeRate": 11.23,
+            "volume": 16881,
+            "tradingValue": 295738239,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [
+            {
+              "id": "mock-news-3",
+              "symbol": "990002",
+              "title": "[합성 기사] 가상종목 B 신규 공정 예시",
+              "url": "https://example.com/mock/news/mock-news-3",
+              "source": "합성 테스트 뉴스",
+              "publishedAt": "2026-11-03T08:45:00+09:00",
+              "category": "합성 예시",
+              "grade": "미분류",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "news_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 B",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-news-3",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-3",
+                "sourceRecordId": "mock-news-3",
+                "publishedAt": "2026-11-03T08:45:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990002",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 B 신규 공정 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "kindDisclosures": [
+            {
+              "id": "mock-kind-2",
+              "symbol": "990002",
+              "title": "[합성 공시] 가상종목 B 계약 예시",
+              "url": "https://example.com/mock/kind/2",
+              "provider": "KIND",
+              "publishedAt": "2026-11-03T08:10:00+09:00",
+              "category": "합성 예시",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "kind_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "disclosureIdentity": {
+                "identifierType": "kind_source_url",
+                "identifier": "https://example.com/mock/kind/2",
+                "provesTickerMatch": false,
+                "reviewStatus": "identity_only"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 B",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-kind-2",
+                "recordType": "disclosure",
+                "sourceType": "kind_rss",
+                "sourceName": "kind.krx.co.kr (합성 데이터)",
+                "sourceUrl": "https://example.com/mock/kind/2",
+                "sourceRecordId": "mock-kind-2",
+                "publishedAt": "2026-11-03T08:10:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990002",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "unverified",
+                "provenanceWarnings": [
+                  "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 공시] 가상종목 B 계약 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 1,
+            "relatedDisclosureCandidateCount": 1,
+            "reviewNeededCount": 2,
+            "evidenceMissingCount": 2,
+            "conflictCount": 0,
+            "reviewReasons": [
+              "kind_schema_unverified",
+              "legacy_unknown",
+              "official_code_missing",
+              "registry_incomplete"
+            ]
+          },
+          "reviewCandidates": [
+            {
+              "reviewId": "record:mock-kind-2",
+              "recordId": "mock-kind-2",
+              "recordType": "disclosure",
+              "ticker": "990002",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 공시] 가상종목 B 계약 예시",
+              "sourceType": "kind_rss",
+              "sourceName": "kind.krx.co.kr (합성 데이터)",
+              "sourceUrl": "https://example.com/mock/kind/2",
+              "publishedAt": "2026-11-03T08:10:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "unverified",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "kind_schema_unverified",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-kind-2",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-news-3",
+              "recordId": "mock-news-3",
+              "recordType": "news",
+              "ticker": "990002",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 B 신규 공정 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-3",
+              "publishedAt": "2026-11-03T08:45:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-3",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "rank": 3,
+          "ticker": "990003",
+          "name": "가상종목 C",
+          "session": "PRE",
+          "quote": {
+            "rank": 3,
+            "symbol": "990003",
+            "name": "가상종목 C",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 21462,
+            "basePrice": 19500,
+            "changeRate": 10.06,
+            "volume": 21262,
+            "tradingValue": 456325044,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [
+            {
+              "id": "mock-news-4",
+              "symbol": "990003",
+              "title": "[합성 기사] 가상종목 C 서비스 예시",
+              "url": "https://example.com/mock/news/mock-news-4",
+              "source": "합성 테스트 뉴스",
+              "publishedAt": "시각 미확인",
+              "category": "합성 예시",
+              "grade": "미분류",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "news_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 C",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-news-4",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-4",
+                "sourceRecordId": "mock-news-4",
+                "publishedAt": null,
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990003",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 C 서비스 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 1,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 1,
+            "evidenceMissingCount": 1,
+            "conflictCount": 0,
+            "reviewReasons": [
+              "legacy_unknown",
+              "official_code_missing",
+              "registry_incomplete"
+            ]
+          },
+          "reviewCandidates": [
+            {
+              "reviewId": "record:mock-news-4",
+              "recordId": "mock-news-4",
+              "recordType": "news",
+              "ticker": "990003",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 C 서비스 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-4",
+              "publishedAt": null,
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-4",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "rank": 4,
+          "ticker": "990004",
+          "name": "가상종목 D",
+          "session": "PRE",
+          "quote": {
+            "rank": 4,
+            "symbol": "990004",
+            "name": "가상종목 D",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 25317,
+            "basePrice": 23250,
+            "changeRate": 8.89,
+            "volume": 25643,
+            "tradingValue": 649203831,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": true,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 5,
+          "ticker": "990005",
+          "name": "가상종목 E",
+          "session": "PRE",
+          "quote": {
+            "rank": 5,
+            "symbol": "990005",
+            "name": "가상종목 E",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 29084,
+            "basePrice": 27000,
+            "changeRate": 7.72,
+            "volume": 30024,
+            "tradingValue": 873218016,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 6,
+          "ticker": "990006",
+          "name": "가상종목 F",
+          "session": "PRE",
+          "quote": {
+            "rank": 6,
+            "symbol": "990006",
+            "name": "가상종목 F",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 32764,
+            "basePrice": 30750,
+            "changeRate": 6.55,
+            "volume": 34405,
+            "tradingValue": 1127245420,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 7,
+          "ticker": "990007",
+          "name": "가상종목 G",
+          "session": "PRE",
+          "quote": {
+            "rank": 7,
+            "symbol": "990007",
+            "name": "가상종목 G",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 36356,
+            "basePrice": 34500,
+            "changeRate": 5.38,
+            "volume": 38786,
+            "tradingValue": 1410103816,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 8,
+          "ticker": "990008",
+          "name": "가상종목 H",
+          "session": "PRE",
+          "quote": {
+            "rank": 8,
+            "symbol": "990008",
+            "name": "가상종목 H",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 39860,
+            "basePrice": 38250,
+            "changeRate": 4.21,
+            "volume": 43167,
+            "tradingValue": 1720636620,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 9,
+          "ticker": "990009",
+          "name": "가상종목 I",
+          "session": "PRE",
+          "quote": {
+            "rank": 9,
+            "symbol": "990009",
+            "name": "가상종목 I",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 43277,
+            "basePrice": 42000,
+            "changeRate": 3.04,
+            "volume": 47548,
+            "tradingValue": 2057734796,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 10,
+          "ticker": "990010",
+          "name": "가상종목 J",
+          "session": "PRE",
+          "quote": {
+            "rank": 10,
+            "symbol": "990010",
+            "name": "가상종목 J",
+            "market": "NXT",
+            "session": "PRE",
+            "price": 46606,
+            "basePrice": 45750,
+            "changeRate": 1.87,
+            "volume": 51929,
+            "tradingValue": 2420202974,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        }
+      ],
+      "excluded": {
+        "invalid": 1,
+        "otherSession": 0,
+        "stale": 1,
+        "duplicate": 0,
+        "conflictingDuplicate": 0
+      },
+      "warnings": [
+        "통합 파이프라인은 전달된 fixture만 처리하며 운영 SQLite를 열지 않습니다.",
+        "공식 증거 파이프라인은 기존 ticker를 legacy_unknown으로 유지합니다.",
+        "전체 공식 종목 레지스트리가 제공되지 않아 순위 종목 범위 안에서만 검토했습니다."
+      ]
+    },
+    "AFTER": {
+      "status": "ok",
+      "session": "AFTER",
+      "dataMode": "mock",
+      "items": [
+        {
+          "rank": 1,
+          "ticker": "990001",
+          "name": "가상종목 A",
+          "session": "AFTER",
+          "quote": {
+            "rank": 1,
+            "symbol": "990001",
+            "name": "가상종목 A",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 13488,
+            "basePrice": 12000,
+            "changeRate": 12.4,
+            "volume": 12500,
+            "tradingValue": 168600000,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [
+            {
+              "id": "mock-news-1",
+              "symbol": "990001",
+              "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+              "url": "https://example.com/mock/news/mock-news-1",
+              "source": "합성 테스트 뉴스",
+              "publishedAt": "2026-11-03T08:20:00+09:00",
+              "category": "합성 예시",
+              "grade": "미분류",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "news_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 A",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-news-1",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-1",
+                "sourceRecordId": "mock-news-1",
+                "publishedAt": "2026-11-03T08:20:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            },
+            {
+              "id": "mock-news-2",
+              "symbol": "990001",
+              "title": "[합성 기사] 가상종목 A 업계 전망 예시",
+              "url": "https://example.com/mock/news/mock-news-2",
+              "source": "합성 테스트 뉴스",
+              "publishedAt": "2026-11-03T08:35:00+09:00",
+              "category": "합성 예시",
+              "grade": "미분류",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "news_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 A",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-news-2",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-2",
+                "sourceRecordId": "mock-news-2",
+                "publishedAt": "2026-11-03T08:35:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 A 업계 전망 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "kindDisclosures": [
+            {
+              "id": "mock-kind-1",
+              "symbol": "990001",
+              "title": "[합성 공시] 가상종목 A 공급계약 예시",
+              "url": "https://example.com/mock/kind/1",
+              "provider": "KIND",
+              "publishedAt": "2026-11-03T08:25:00+09:00",
+              "category": "합성 예시",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "kind_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "disclosureIdentity": {
+                "identifierType": "kind_source_url",
+                "identifier": "https://example.com/mock/kind/1",
+                "provesTickerMatch": false,
+                "reviewStatus": "identity_only"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 A",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-kind-1",
+                "recordType": "disclosure",
+                "sourceType": "kind_rss",
+                "sourceName": "kind.krx.co.kr (합성 데이터)",
+                "sourceUrl": "https://example.com/mock/kind/1",
+                "sourceRecordId": "mock-kind-1",
+                "publishedAt": "2026-11-03T08:25:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "unverified",
+                "provenanceWarnings": [
+                  "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 공시] 가상종목 A 공급계약 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "dartDisclosures": [
+            {
+              "id": "mock-dart-provenance-1",
+              "symbol": "990001",
+              "title": "[합성 공시] DART 문서 필드 검토 예시",
+              "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261103000001",
+              "provider": "DART",
+              "publishedAt": "2026-11-03",
+              "category": "합성 예시",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "dart_disclosure",
+              "matchReasons": [
+                "legacy_ticker_provenance_not_available"
+              ],
+              "sourceFieldEvidence": {
+                "source": "DART",
+                "sourceRecordId": "20261103000001",
+                "verificationLevel": "DOCUMENTED",
+                "dataOrigin": "documented_schema_fixture",
+                "payloadAuthenticity": "UNVERIFIED",
+                "ticker": "990001",
+                "matchStatus": "review",
+                "reasons": [
+                  "ticker_not_found_in_verified_registry"
+                ]
+              },
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "disclosureIdentity": {
+                "identifierType": "dart_receipt_number",
+                "identifier": "20261103000001",
+                "provesTickerMatch": false,
+                "reviewStatus": "identity_only"
+              },
+              "matchEvidence": {
+                "matchedText": null,
+                "sourceField": "ticker",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance"
+              },
+              "provenance": {
+                "recordId": "mock-dart-provenance-1",
+                "recordType": "disclosure",
+                "sourceType": "dart_disclosure",
+                "sourceName": "DART",
+                "sourceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261103000001",
+                "sourceRecordId": "20261103000001",
+                "publishedAt": "2026-11-03",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "DOCUMENTED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "문서 구조 fixture이며 실제 응답 진위는 확인되지 않았습니다.",
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": {
+                  "sourceType": "dart_disclosure",
+                  "sourceRecordId": "20261103000001",
+                  "tickerField": "stock_code",
+                  "tickerCandidate": "990001",
+                  "corporateIdField": null,
+                  "corporateId": null,
+                  "schemaVerification": "DOCUMENTED",
+                  "payloadAuthenticity": "UNVERIFIED",
+                  "dataOrigin": "documented_schema_fixture",
+                  "assessmentStatus": "review",
+                  "legacyTickerConflict": false
+                },
+                "legacyFields": {
+                  "title": "[합성 공시] DART 문서 필드 검토 예시",
+                  "dartReceiptId": "20261103000001",
+                  "corporateId": null
+                }
+              }
+            },
+            {
+              "id": "mock-dart-1",
+              "symbol": "990001",
+              "title": "[합성 공시] 가상종목 A 분기보고서 예시",
+              "url": "https://example.com/mock/dart/1",
+              "provider": "DART",
+              "publishedAt": "2026-11-03",
+              "category": "합성 예시",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "dart_disclosure",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "disclosureIdentity": {
+                "identifierType": "unknown_disclosure_identifier",
+                "identifier": null,
+                "provesTickerMatch": false,
+                "reviewStatus": "needs_review"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 A",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-dart-1",
+                "recordType": "disclosure",
+                "sourceType": "dart_disclosure",
+                "sourceName": "DART",
+                "sourceUrl": "https://example.com/mock/dart/1",
+                "sourceRecordId": "mock-dart-1",
+                "publishedAt": "2026-11-03",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990001",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 DART 행에는 원본 종목코드 필드가 보존되지 않았습니다.",
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 공시] 가상종목 A 분기보고서 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 3,
+            "relatedDisclosureCandidateCount": 3,
+            "reviewNeededCount": 6,
+            "evidenceMissingCount": 6,
+            "conflictCount": 1,
+            "reviewReasons": [
+              "dart_payload_unverified",
+              "kind_schema_unverified",
+              "legacy_unknown",
+              "official_code_missing",
+              "registry_incomplete",
+              "storage_conflict",
+              "ticker_conflict"
+            ]
+          },
+          "reviewCandidates": [
+            {
+              "reviewId": "conflict:1",
+              "recordId": "mock-news-1",
+              "recordType": "news",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-1",
+              "publishedAt": "2026-11-03T08:20:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "conflict",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "ticker_conflict",
+                "registry_incomplete",
+                "storage_conflict"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": {
+                "recordId": "mock-news-1",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-1",
+                "sourceRecordId": "mock-news-1",
+                "publishedAt": "2026-11-03T08:20:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "000000",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "matchedAt": "2026-11-03T09:37:51.603Z",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "inputDataType": "synthetic_fixture",
+                "normalizationVersion": "1",
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+                  "url": "https://example.com/mock/news/mock-news-1",
+                  "source": "합성 테스트 뉴스",
+                  "category": "합성 예시",
+                  "grade": "미분류",
+                  "impact": "",
+                  "risks": "",
+                  "timeAccuracy": "second",
+                  "sourceLinks": [],
+                  "dartReceiptId": null,
+                  "corporateId": null
+                },
+                "documentedSourceEvidence": null
+              },
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-1",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-dart-1",
+              "recordId": "mock-dart-1",
+              "recordType": "disclosure",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 공시] 가상종목 A 분기보고서 예시",
+              "sourceType": "dart_disclosure",
+              "sourceName": "DART",
+              "sourceUrl": "https://example.com/mock/dart/1",
+              "publishedAt": "2026-11-03",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "dart_payload_unverified",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-dart-1",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 DART 행에는 원본 종목코드 필드가 보존되지 않았습니다.",
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-dart-provenance-1",
+              "recordId": "mock-dart-provenance-1",
+              "recordType": "disclosure",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 공시] DART 문서 필드 검토 예시",
+              "sourceType": "dart_disclosure",
+              "sourceName": "DART",
+              "sourceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261103000001",
+              "publishedAt": "2026-11-03",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "DOCUMENTED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "dart_payload_unverified",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "20261103000001",
+                "documentedSourceEvidence": {
+                  "sourceType": "dart_disclosure",
+                  "sourceRecordId": "20261103000001",
+                  "tickerField": "stock_code",
+                  "tickerCandidate": "990001",
+                  "corporateIdField": null,
+                  "corporateId": null,
+                  "schemaVerification": "DOCUMENTED",
+                  "payloadAuthenticity": "UNVERIFIED",
+                  "dataOrigin": "documented_schema_fixture",
+                  "assessmentStatus": "review",
+                  "legacyTickerConflict": false
+                },
+                "provenanceWarnings": [
+                  "문서 구조 fixture이며 실제 응답 진위는 확인되지 않았습니다.",
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-kind-1",
+              "recordId": "mock-kind-1",
+              "recordType": "disclosure",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 공시] 가상종목 A 공급계약 예시",
+              "sourceType": "kind_rss",
+              "sourceName": "kind.krx.co.kr (합성 데이터)",
+              "sourceUrl": "https://example.com/mock/kind/1",
+              "publishedAt": "2026-11-03T08:25:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "unverified",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "kind_schema_unverified",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-kind-1",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-news-1",
+              "recordId": "mock-news-1",
+              "recordType": "news",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-1",
+              "publishedAt": "2026-11-03T08:20:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-1",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-news-2",
+              "recordId": "mock-news-2",
+              "recordType": "news",
+              "ticker": "990001",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 A 업계 전망 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-2",
+              "publishedAt": "2026-11-03T08:35:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-2",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "rank": 2,
+          "ticker": "990002",
+          "name": "가상종목 B",
+          "session": "AFTER",
+          "quote": {
+            "rank": 2,
+            "symbol": "990002",
+            "name": "가상종목 B",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 17519,
+            "basePrice": 15750,
+            "changeRate": 11.23,
+            "volume": 16881,
+            "tradingValue": 295738239,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [
+            {
+              "id": "mock-news-3",
+              "symbol": "990002",
+              "title": "[합성 기사] 가상종목 B 신규 공정 예시",
+              "url": "https://example.com/mock/news/mock-news-3",
+              "source": "합성 테스트 뉴스",
+              "publishedAt": "2026-11-03T08:45:00+09:00",
+              "category": "합성 예시",
+              "grade": "미분류",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "news_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 B",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-news-3",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-3",
+                "sourceRecordId": "mock-news-3",
+                "publishedAt": "2026-11-03T08:45:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990002",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 B 신규 공정 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "kindDisclosures": [
+            {
+              "id": "mock-kind-2",
+              "symbol": "990002",
+              "title": "[합성 공시] 가상종목 B 계약 예시",
+              "url": "https://example.com/mock/kind/2",
+              "provider": "KIND",
+              "publishedAt": "2026-11-03T08:10:00+09:00",
+              "category": "합성 예시",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "kind_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "disclosureIdentity": {
+                "identifierType": "kind_source_url",
+                "identifier": "https://example.com/mock/kind/2",
+                "provesTickerMatch": false,
+                "reviewStatus": "identity_only"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 B",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-kind-2",
+                "recordType": "disclosure",
+                "sourceType": "kind_rss",
+                "sourceName": "kind.krx.co.kr (합성 데이터)",
+                "sourceUrl": "https://example.com/mock/kind/2",
+                "sourceRecordId": "mock-kind-2",
+                "publishedAt": "2026-11-03T08:10:00+09:00",
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990002",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "unverified",
+                "provenanceWarnings": [
+                  "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 공시] 가상종목 B 계약 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 1,
+            "relatedDisclosureCandidateCount": 1,
+            "reviewNeededCount": 2,
+            "evidenceMissingCount": 2,
+            "conflictCount": 0,
+            "reviewReasons": [
+              "kind_schema_unverified",
+              "legacy_unknown",
+              "official_code_missing",
+              "registry_incomplete"
+            ]
+          },
+          "reviewCandidates": [
+            {
+              "reviewId": "record:mock-kind-2",
+              "recordId": "mock-kind-2",
+              "recordType": "disclosure",
+              "ticker": "990002",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 공시] 가상종목 B 계약 예시",
+              "sourceType": "kind_rss",
+              "sourceName": "kind.krx.co.kr (합성 데이터)",
+              "sourceUrl": "https://example.com/mock/kind/2",
+              "publishedAt": "2026-11-03T08:10:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "unverified",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "kind_schema_unverified",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-kind-2",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+                ]
+              }
+            },
+            {
+              "reviewId": "record:mock-news-3",
+              "recordId": "mock-news-3",
+              "recordType": "news",
+              "ticker": "990002",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 B 신규 공정 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-3",
+              "publishedAt": "2026-11-03T08:45:00+09:00",
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-3",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "rank": 3,
+          "ticker": "990003",
+          "name": "가상종목 C",
+          "session": "AFTER",
+          "quote": {
+            "rank": 3,
+            "symbol": "990003",
+            "name": "가상종목 C",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 21462,
+            "basePrice": 19500,
+            "changeRate": 10.06,
+            "volume": 21262,
+            "tradingValue": 456325044,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [
+            {
+              "id": "mock-news-4",
+              "symbol": "990003",
+              "title": "[합성 기사] 가상종목 C 서비스 예시",
+              "url": "https://example.com/mock/news/mock-news-4",
+              "source": "합성 테스트 뉴스",
+              "publishedAt": "시각 미확인",
+              "category": "합성 예시",
+              "grade": "미분류",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "confirmed": false,
+              "sourceType": "news_rss",
+              "matchReasons": [
+                "text_match_is_candidate_not_official_code_proof"
+              ],
+              "sourceFieldEvidence": null,
+              "classification": {
+                "category": "합성 예시",
+                "grade": "미분류"
+              },
+              "matchEvidence": {
+                "matchedText": "가상종목 C",
+                "sourceField": "title",
+                "ambiguityReason": null
+              },
+              "provenance": {
+                "recordId": "mock-news-4",
+                "recordType": "news",
+                "sourceType": "news_rss",
+                "sourceName": "합성 테스트 뉴스",
+                "sourceUrl": "https://example.com/mock/news/mock-news-4",
+                "sourceRecordId": "mock-news-4",
+                "publishedAt": null,
+                "observedAt": "2026-11-03T09:37:51.603Z",
+                "ticker": "990003",
+                "companyName": "합성 테스트 데이터",
+                "matchMethod": "legacy_unknown",
+                "matchedText": null,
+                "sourceField": "ticker",
+                "evidenceSource": "legacy_store",
+                "confidence": "unknown",
+                "reviewStatus": "needs_review",
+                "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+                "schemaVerification": "UNVERIFIED",
+                "payloadAuthenticity": "UNVERIFIED",
+                "registryVerification": "UNVERIFIED",
+                "evidenceVersion": "1",
+                "verifiedAt": null,
+                "provenanceStatus": "legacy_unknown",
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ],
+                "documentedSourceEvidence": null,
+                "legacyFields": {
+                  "title": "[합성 기사] 가상종목 C 서비스 예시",
+                  "dartReceiptId": null,
+                  "corporateId": null
+                }
+              }
+            }
+          ],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 1,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 1,
+            "evidenceMissingCount": 1,
+            "conflictCount": 0,
+            "reviewReasons": [
+              "legacy_unknown",
+              "official_code_missing",
+              "registry_incomplete"
+            ]
+          },
+          "reviewCandidates": [
+            {
+              "reviewId": "record:mock-news-4",
+              "recordId": "mock-news-4",
+              "recordType": "news",
+              "ticker": "990003",
+              "companyName": "합성 테스트 데이터",
+              "title": "[합성 기사] 가상종목 C 서비스 예시",
+              "sourceType": "news_rss",
+              "sourceName": "합성 테스트 뉴스",
+              "sourceUrl": "https://example.com/mock/news/mock-news-4",
+              "publishedAt": null,
+              "observedAt": "2026-11-03T09:37:51.603Z",
+              "matchMethod": "legacy_unknown",
+              "confidence": "unknown",
+              "reviewStatus": "needs_review",
+              "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+              "provenanceStatus": "legacy_unknown",
+              "schemaVerification": "UNVERIFIED",
+              "payloadAuthenticity": "UNVERIFIED",
+              "registryVerification": "UNVERIFIED",
+              "reviewReason": "legacy_unknown",
+              "reviewReasons": [
+                "legacy_unknown",
+                "official_code_missing",
+                "registry_incomplete"
+              ],
+              "createdAt": "2026-11-03 09:37:51",
+              "conflictingEvidence": null,
+              "matchEvidence": {
+                "evidenceSource": "legacy_store",
+                "sourceField": "ticker",
+                "matchedText": null,
+                "sourceRecordId": "mock-news-4",
+                "documentedSourceEvidence": null,
+                "provenanceWarnings": [
+                  "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "rank": 4,
+          "ticker": "990004",
+          "name": "가상종목 D",
+          "session": "AFTER",
+          "quote": {
+            "rank": 4,
+            "symbol": "990004",
+            "name": "가상종목 D",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 25317,
+            "basePrice": 23250,
+            "changeRate": 8.89,
+            "volume": 25643,
+            "tradingValue": 649203831,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": true,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 5,
+          "ticker": "990005",
+          "name": "가상종목 E",
+          "session": "AFTER",
+          "quote": {
+            "rank": 5,
+            "symbol": "990005",
+            "name": "가상종목 E",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 29084,
+            "basePrice": 27000,
+            "changeRate": 7.72,
+            "volume": 30024,
+            "tradingValue": 873218016,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 6,
+          "ticker": "990006",
+          "name": "가상종목 F",
+          "session": "AFTER",
+          "quote": {
+            "rank": 6,
+            "symbol": "990006",
+            "name": "가상종목 F",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 32764,
+            "basePrice": 30750,
+            "changeRate": 6.55,
+            "volume": 34405,
+            "tradingValue": 1127245420,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 7,
+          "ticker": "990007",
+          "name": "가상종목 G",
+          "session": "AFTER",
+          "quote": {
+            "rank": 7,
+            "symbol": "990007",
+            "name": "가상종목 G",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 36356,
+            "basePrice": 34500,
+            "changeRate": 5.38,
+            "volume": 38786,
+            "tradingValue": 1410103816,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 8,
+          "ticker": "990008",
+          "name": "가상종목 H",
+          "session": "AFTER",
+          "quote": {
+            "rank": 8,
+            "symbol": "990008",
+            "name": "가상종목 H",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 39860,
+            "basePrice": 38250,
+            "changeRate": 4.21,
+            "volume": 43167,
+            "tradingValue": 1720636620,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 9,
+          "ticker": "990009",
+          "name": "가상종목 I",
+          "session": "AFTER",
+          "quote": {
+            "rank": 9,
+            "symbol": "990009",
+            "name": "가상종목 I",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 43277,
+            "basePrice": 42000,
+            "changeRate": 3.04,
+            "volume": 47548,
+            "tradingValue": 2057734796,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        },
+        {
+          "rank": 10,
+          "ticker": "990010",
+          "name": "가상종목 J",
+          "session": "AFTER",
+          "quote": {
+            "rank": 10,
+            "symbol": "990010",
+            "name": "가상종목 J",
+            "market": "NXT",
+            "session": "AFTER",
+            "price": 46606,
+            "basePrice": 45750,
+            "changeRate": 1.87,
+            "volume": 51929,
+            "tradingValue": 2420202974,
+            "timestamp": "2026-11-03T09:37:36.603Z",
+            "source": "mock:synthetic-preview",
+            "isDelayed": false,
+            "isStale": false,
+            "dataMode": "mock"
+          },
+          "relatedNews": [],
+          "kindDisclosures": [],
+          "dartDisclosures": [],
+          "reviewQueueSummary": {
+            "relatedNewsCandidateCount": 0,
+            "relatedDisclosureCandidateCount": 0,
+            "reviewNeededCount": 0,
+            "evidenceMissingCount": 0,
+            "conflictCount": 0,
+            "reviewReasons": []
+          },
+          "reviewCandidates": []
+        }
+      ],
+      "excluded": {
+        "invalid": 1,
+        "otherSession": 0,
+        "stale": 1,
+        "duplicate": 0,
+        "conflictingDuplicate": 0
+      },
+      "warnings": [
+        "통합 파이프라인은 전달된 fixture만 처리하며 운영 SQLite를 열지 않습니다.",
+        "공식 증거 파이프라인은 기존 ticker를 legacy_unknown으로 유지합니다.",
+        "전체 공식 종목 레지스트리가 제공되지 않아 순위 종목 범위 안에서만 검토했습니다."
+      ]
+    }
+  },
+  "reviewQueue": {
+    "status": "ok",
+    "generatedAt": "2026-11-03T09:37:51.603Z",
+    "page": {
+      "limit": 100,
+      "offset": 0,
+      "returned": 10,
+      "total": 10,
+      "hasMore": false
+    },
+    "aggregates": {
+      "statusCounts": {
+        "conflict": 1,
+        "needs_review": 9
+      },
+      "sourceCounts": {
+        "dart_disclosure": 2,
+        "kind_rss": 2,
+        "news_rss": 5,
+        "unknown": 1
+      },
+      "reasonCounts": {
+        "legacy_unknown": 10,
+        "kind_schema_unverified": 2,
+        "dart_payload_unverified": 2,
+        "official_code_missing": 10,
+        "ticker_conflict": 1,
+        "company_name_conflict": 0,
+        "alias_ambiguity": 0,
+        "multiple_tickers": 0,
+        "source_unverified": 1,
+        "registry_incomplete": 10,
+        "storage_conflict": 1,
+        "other": 0
+      }
+    },
+    "items": [
+      {
+        "reviewId": "conflict:1",
+        "recordId": "mock-news-1",
+        "recordType": "news",
+        "ticker": "990001",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+        "sourceType": "news_rss",
+        "sourceName": "합성 테스트 뉴스",
+        "sourceUrl": "https://example.com/mock/news/mock-news-1",
+        "publishedAt": "2026-11-03T08:20:00+09:00",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "conflict",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "legacy_unknown",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "official_code_missing",
+          "ticker_conflict",
+          "registry_incomplete",
+          "storage_conflict"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": {
+          "recordId": "mock-news-1",
+          "recordType": "news",
+          "sourceType": "news_rss",
+          "sourceName": "합성 테스트 뉴스",
+          "sourceUrl": "https://example.com/mock/news/mock-news-1",
+          "sourceRecordId": "mock-news-1",
+          "publishedAt": "2026-11-03T08:20:00+09:00",
+          "observedAt": "2026-11-03T09:37:51.603Z",
+          "ticker": "000000",
+          "companyName": "합성 테스트 데이터",
+          "matchMethod": "legacy_unknown",
+          "matchedText": null,
+          "sourceField": "ticker",
+          "evidenceSource": "legacy_store",
+          "confidence": "unknown",
+          "reviewStatus": "needs_review",
+          "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+          "matchedAt": "2026-11-03T09:37:51.603Z",
+          "schemaVerification": "UNVERIFIED",
+          "payloadAuthenticity": "UNVERIFIED",
+          "registryVerification": "UNVERIFIED",
+          "evidenceVersion": "1",
+          "verifiedAt": null,
+          "inputDataType": "synthetic_fixture",
+          "normalizationVersion": "1",
+          "provenanceStatus": "legacy_unknown",
+          "provenanceWarnings": [
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ],
+          "legacyFields": {
+            "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+            "url": "https://example.com/mock/news/mock-news-1",
+            "source": "합성 테스트 뉴스",
+            "category": "합성 예시",
+            "grade": "미분류",
+            "impact": "",
+            "risks": "",
+            "timeAccuracy": "second",
+            "sourceLinks": [],
+            "dartReceiptId": null,
+            "corporateId": null
+          },
+          "documentedSourceEvidence": null
+        },
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-news-1",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-dart-1",
+        "recordId": "mock-dart-1",
+        "recordType": "disclosure",
+        "ticker": "990001",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 공시] 가상종목 A 분기보고서 예시",
+        "sourceType": "dart_disclosure",
+        "sourceName": "DART",
+        "sourceUrl": "https://example.com/mock/dart/1",
+        "publishedAt": "2026-11-03",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "legacy_unknown",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "dart_payload_unverified",
+          "official_code_missing",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-dart-1",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "기존 DART 행에는 원본 종목코드 필드가 보존되지 않았습니다.",
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-dart-provenance-1",
+        "recordId": "mock-dart-provenance-1",
+        "recordType": "disclosure",
+        "ticker": "990001",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 공시] DART 문서 필드 검토 예시",
+        "sourceType": "dart_disclosure",
+        "sourceName": "DART",
+        "sourceUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261103000001",
+        "publishedAt": "2026-11-03",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "legacy_unknown",
+        "schemaVerification": "DOCUMENTED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "dart_payload_unverified",
+          "official_code_missing",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "20261103000001",
+          "documentedSourceEvidence": {
+            "sourceType": "dart_disclosure",
+            "sourceRecordId": "20261103000001",
+            "tickerField": "stock_code",
+            "tickerCandidate": "990001",
+            "corporateIdField": null,
+            "corporateId": null,
+            "schemaVerification": "DOCUMENTED",
+            "payloadAuthenticity": "UNVERIFIED",
+            "dataOrigin": "documented_schema_fixture",
+            "assessmentStatus": "review",
+            "legacyTickerConflict": false
+          },
+          "provenanceWarnings": [
+            "문서 구조 fixture이며 실제 응답 진위는 확인되지 않았습니다.",
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-kind-1",
+        "recordId": "mock-kind-1",
+        "recordType": "disclosure",
+        "ticker": "990001",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 공시] 가상종목 A 공급계약 예시",
+        "sourceType": "kind_rss",
+        "sourceName": "kind.krx.co.kr (합성 데이터)",
+        "sourceUrl": "https://example.com/mock/kind/1",
+        "publishedAt": "2026-11-03T08:25:00+09:00",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "unverified",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "kind_schema_unverified",
+          "official_code_missing",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-kind-1",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-kind-2",
+        "recordId": "mock-kind-2",
+        "recordType": "disclosure",
+        "ticker": "990002",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 공시] 가상종목 B 계약 예시",
+        "sourceType": "kind_rss",
+        "sourceName": "kind.krx.co.kr (합성 데이터)",
+        "sourceUrl": "https://example.com/mock/kind/2",
+        "publishedAt": "2026-11-03T08:10:00+09:00",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "unverified",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "kind_schema_unverified",
+          "official_code_missing",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-kind-2",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "KIND RSS 원시 필드 계약은 UNVERIFIED입니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-news-1",
+        "recordId": "mock-news-1",
+        "recordType": "news",
+        "ticker": "990001",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 기사] 가상종목 A 신제품 출시 예시",
+        "sourceType": "news_rss",
+        "sourceName": "합성 테스트 뉴스",
+        "sourceUrl": "https://example.com/mock/news/mock-news-1",
+        "publishedAt": "2026-11-03T08:20:00+09:00",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "legacy_unknown",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "official_code_missing",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-news-1",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-news-2",
+        "recordId": "mock-news-2",
+        "recordType": "news",
+        "ticker": "990001",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 기사] 가상종목 A 업계 전망 예시",
+        "sourceType": "news_rss",
+        "sourceName": "합성 테스트 뉴스",
+        "sourceUrl": "https://example.com/mock/news/mock-news-2",
+        "publishedAt": "2026-11-03T08:35:00+09:00",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "legacy_unknown",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "official_code_missing",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-news-2",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-news-3",
+        "recordId": "mock-news-3",
+        "recordType": "news",
+        "ticker": "990002",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 기사] 가상종목 B 신규 공정 예시",
+        "sourceType": "news_rss",
+        "sourceName": "합성 테스트 뉴스",
+        "sourceUrl": "https://example.com/mock/news/mock-news-3",
+        "publishedAt": "2026-11-03T08:45:00+09:00",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "legacy_unknown",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "official_code_missing",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-news-3",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-news-4",
+        "recordId": "mock-news-4",
+        "recordType": "news",
+        "ticker": "990003",
+        "companyName": "합성 테스트 데이터",
+        "title": "[합성 기사] 가상종목 C 서비스 예시",
+        "sourceType": "news_rss",
+        "sourceName": "합성 테스트 뉴스",
+        "sourceUrl": "https://example.com/mock/news/mock-news-4",
+        "publishedAt": null,
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "legacy_unknown",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "official_code_missing",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-news-4",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ]
+        }
+      },
+      {
+        "reviewId": "record:mock-unassigned-1",
+        "recordId": "mock-unassigned-1",
+        "recordType": "news",
+        "ticker": "099997",
+        "companyName": "연결 근거 미확인",
+        "title": "[합성 후보] TOP10 미배정 검토 예시",
+        "sourceType": "unknown",
+        "sourceName": "unknown",
+        "sourceUrl": "https://example.com/mock/unassigned/1",
+        "publishedAt": "2026-11-03T08:50:00+09:00",
+        "observedAt": "2026-11-03T09:37:51.603Z",
+        "matchMethod": "legacy_unknown",
+        "confidence": "unknown",
+        "reviewStatus": "needs_review",
+        "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+        "provenanceStatus": "legacy_unknown",
+        "schemaVerification": "UNVERIFIED",
+        "payloadAuthenticity": "UNVERIFIED",
+        "registryVerification": "UNVERIFIED",
+        "reviewReason": "legacy_unknown",
+        "reviewReasons": [
+          "legacy_unknown",
+          "official_code_missing",
+          "source_unverified",
+          "registry_incomplete"
+        ],
+        "createdAt": "2026-11-03 09:37:51",
+        "conflictingEvidence": null,
+        "matchEvidence": {
+          "evidenceSource": "legacy_store",
+          "sourceField": "ticker",
+          "matchedText": null,
+          "sourceRecordId": "mock-unassigned-1",
+          "documentedSourceEvidence": null,
+          "provenanceWarnings": [
+            "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+          ]
+        }
+      }
+    ]
+  },
+  "unassignedReviewItems": [
+    {
+      "reviewId": "record:mock-unassigned-1",
+      "recordId": "mock-unassigned-1",
+      "recordType": "news",
+      "ticker": "099997",
+      "companyName": "연결 근거 미확인",
+      "title": "[합성 후보] TOP10 미배정 검토 예시",
+      "sourceType": "unknown",
+      "sourceName": "unknown",
+      "sourceUrl": "https://example.com/mock/unassigned/1",
+      "publishedAt": "2026-11-03T08:50:00+09:00",
+      "observedAt": "2026-11-03T09:37:51.603Z",
+      "matchMethod": "legacy_unknown",
+      "confidence": "unknown",
+      "reviewStatus": "needs_review",
+      "ambiguityReason": "legacy_ticker_has_no_preserved_match_provenance",
+      "provenanceStatus": "legacy_unknown",
+      "schemaVerification": "UNVERIFIED",
+      "payloadAuthenticity": "UNVERIFIED",
+      "registryVerification": "UNVERIFIED",
+      "reviewReason": "legacy_unknown",
+      "reviewReasons": [
+        "legacy_unknown",
+        "official_code_missing",
+        "source_unverified",
+        "registry_incomplete"
+      ],
+      "createdAt": "2026-11-03 09:37:51",
+      "conflictingEvidence": null,
+      "matchEvidence": {
+        "evidenceSource": "legacy_store",
+        "sourceField": "ticker",
+        "matchedText": null,
+        "sourceRecordId": "mock-unassigned-1",
+        "documentedSourceEvidence": null,
+        "provenanceWarnings": [
+          "기존 ticker의 매칭 근거가 보존되지 않았습니다."
+        ]
+      }
+    }
+  ]
+}

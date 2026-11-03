@@ -13,9 +13,9 @@ test('PRE 화면에 순위와 10개 유효 Mock 종목을 렌더링한다', () =
   assert.match(html, /프리마켓 PRE/);
 });
 
-test('AFTER 화면은 별도 세션 데이터 8개만 표시한다', () => {
+test('AFTER 화면은 별도 세션 데이터 10개를 표시한다', () => {
   const html = renderPreview(snapshot(), {session: 'AFTER', now: NOW});
-  assert.equal((html.match(/class="quote-card"/g) || []).length, 8);
+  assert.equal((html.match(/class="quote-card"/g) || []).length, 10);
   assert.match(html, /애프터마켓 AFTER/);
   assert.doesNotMatch(html, /PRE 상승률 순위/);
 });

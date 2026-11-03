@@ -3,7 +3,7 @@ import {calculateTop10} from '../../src/nxt/top10.js';
 import {enrichTop10} from '../../src/nxt/top10-enriched.js';
 
 const PRE_SYMBOLS = Array.from({length: 12}, (_, index) => String(990001 + index));
-const AFTER_SYMBOLS = PRE_SYMBOLS.slice(0, 8);
+const AFTER_SYMBOLS = PRE_SYMBOLS.slice(0, 10);
 const SAMPLE_NAMES = Array.from({length: 12}, (_, index) => `가상종목 ${String.fromCharCode(65 + index)}`);
 
 function makeQuotes(symbols, session, now) {
@@ -49,6 +49,20 @@ function news() {
     article('mock-news-3', '990002', '[합성 기사] 가상종목 B 신규 공정 예시', '합성 테스트 뉴스', '2026-11-03T08:45:00+09:00'),
     article('mock-news-4', '990003', '[합성 기사] 가상종목 C 서비스 예시', '합성 테스트 뉴스', '시각 미확인')
   ];
+}
+
+/** Synthetic legacy-shaped rows for the development integration builder only. */
+export function buildMockArticleRows() {
+  return structuredClone([
+    ...news(),
+    ...disclosures(),
+    article('mock-dart-provenance-1', '990001', '[합성 공시] DART 문서 필드 검토 예시', 'DART', '2026-11-03', {
+      url: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261103000001', is_disclosure: 1
+    }),
+    article('mock-unassigned-1', '099997', '[합성 후보] TOP10 미배정 검토 예시', '', '2026-11-03T08:50:00+09:00', {
+      company: '연결 근거 미확인', url: 'https://example.com/mock/unassigned/1'
+    })
+  ]);
 }
 
 /** Build an offline-only preview snapshot. No API, account, or production data is read. */
