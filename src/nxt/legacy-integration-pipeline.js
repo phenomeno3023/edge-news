@@ -91,6 +91,7 @@ export function runLegacyIntegrationPipeline({top10Result, articleRows = [], dar
       kindUnverified: normalized.kindAssessments.length,
       dartDocumentedFixtures: normalized.dartAssessments.length,
       dartMatchedToLegacyRows: normalized.dartAssessments.length - unmatchedDartAssessments.length,
+      dataOrigins: {legacyRows: dataOrigin, dartDocumentedFixtures: normalized.dartAssessments.length ? 'documented_schema_fixture' : null},
       confirmedRecords: 0,
       needsReviewRecords: integrationReviewQueue.length
     },

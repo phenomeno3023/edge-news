@@ -57,7 +57,7 @@ const result = runLegacyIntegrationPipeline({
 });
 ```
 
-`dataOrigin` 값은 `synthetic_fixture`, `legacy_format_fixture`, `documented_schema_fixture` 등 입력 테스트 출처를 표시하는 메타데이터일 뿐, 원천 진위 인증이 아닙니다.
+`dataOrigin` 값은 `synthetic_fixture`, `legacy_format_fixture`, `documented_schema_fixture` 등 입력 테스트 출처를 표시하는 메타데이터일 뿐, 원천 진위 인증이 아닙니다. 파이프라인의 DART 문서 구조 fixture는 `documented_schema_fixture`로 별도 표시하며 합성 또는 legacy 행의 출처 표기와 섞지 않습니다.
 
 ## 테스트 및 운영 보호
 

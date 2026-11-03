@@ -12,7 +12,7 @@ export function normalizeIntegrationSources(rows, {dartDocumentedFixtures = [], 
   for (const [index, fixture] of fixtureRows.entries()) {
     const mapped = mapDartDisclosureListItem(fixture, {observedAt: now.toISOString(), now});
     const recordId = mapped.mapped?.sourceRecordId || id(fixture?.rcept_no);
-    dartAssessments.push({index, recordId, status: mapped.status, reasons: mapped.reasons, verificationLevel: mapped.mapped?.verificationLevel || 'UNVERIFIED', payloadAuthenticity: mapped.mapped?.payloadAuthenticity || 'UNVERIFIED', corporateId: mapped.corporateId || null, ticker: mapped.evidence?.contract?.ticker || null, evidence: mapped.evidence || null});
+    dartAssessments.push({index, recordId, status: mapped.status, reasons: mapped.reasons, dataOrigin: 'documented_schema_fixture', verificationLevel: mapped.mapped?.verificationLevel || 'UNVERIFIED', payloadAuthenticity: mapped.mapped?.payloadAuthenticity || 'UNVERIFIED', corporateId: mapped.corporateId || null, ticker: mapped.evidence?.contract?.ticker || null, evidence: mapped.evidence || null});
   }
   const assessmentById = new Map(dartAssessments.filter(row => row.recordId).map(row => [row.recordId, row]));
   const records = adapted.records.map(record => {
@@ -20,7 +20,7 @@ export function normalizeIntegrationSources(rows, {dartDocumentedFixtures = [], 
     const assessment = assessmentById.get(record.dartReceiptId);
     return assessment ? {...record, sourceFieldEvidence: {
       source: 'DART', sourceRecordId: assessment.recordId, verificationLevel: assessment.verificationLevel,
-      payloadAuthenticity: assessment.payloadAuthenticity, ticker: assessment.ticker,
+      dataOrigin: assessment.dataOrigin, payloadAuthenticity: assessment.payloadAuthenticity, ticker: assessment.ticker,
       matchStatus: assessment.status, reasons: assessment.reasons
     }} : record;
   });
