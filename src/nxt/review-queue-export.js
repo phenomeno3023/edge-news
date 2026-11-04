@@ -1,15 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {resolveProvenanceStoragePath} from './provenance-path.js';
-import {buildReviewQueueExport as buildReviewQueueExportContract, REVIEW_EXPORT_SCHEMA_VERSION} from './review-export-contract.js';
+import {buildReviewQueueExport as buildReviewQueueExportContract, REVIEW_CSV_COLUMNS, REVIEW_EXPORT_SCHEMA_VERSION, serializeReviewQueueCSV as serializeReviewQueueCSVContract} from './review-export-contract.js';
 
-export {REVIEW_EXPORT_SCHEMA_VERSION};
-export const REVIEW_CSV_COLUMNS = Object.freeze([
-  'reviewId', 'recordId', 'recordType', 'ticker', 'companyName', 'title', 'sourceType', 'sourceName', 'sourceUrl',
-  'publishedAt', 'observedAt', 'matchMethod', 'confidence', 'reviewStatus', 'ambiguityReason', 'provenanceStatus',
-  'schemaVerification', 'payloadAuthenticity', 'registryVerification', 'reviewReason', 'reviewReasons', 'createdAt',
-  'matchEvidence', 'conflictingEvidence'
-]);
+export {REVIEW_CSV_COLUMNS, REVIEW_EXPORT_SCHEMA_VERSION};
 
 function resolveExportPath(filePath, allowedRoot, extension) {
   if (typeof filePath !== 'string' || path.extname(filePath).toLowerCase() !== extension) throw new Error(`review_export_path_must_end_${extension}`);
@@ -31,16 +25,7 @@ export function buildReviewQueueExport(queue, options = {}) {
 }
 
 export function serializeReviewQueueCSV(queue, options = {}) {
-  const payload = buildReviewQueueExportContract(queue, options);
-  const cell = value => {
-    if (value == null) return '"\\N"';
-    let text = typeof value === 'string' ? value : typeof value === 'object' ? JSON.stringify(value) : String(value);
-    if (/^[\s\u0000-\u001f]*[=+\-@]/.test(text)) text = `'${text}`;
-    return `"${text.replaceAll('"', '""')}"`;
-  };
-  const rows = [REVIEW_CSV_COLUMNS.map(cell).join(',')];
-  for (const item of payload.items) rows.push(REVIEW_CSV_COLUMNS.map(column => cell(item[column])).join(','));
-  return `${rows.join('\r\n')}\r\n`;
+  return serializeReviewQueueCSVContract(queue, options);
 }
 
 export function writeReviewQueueJSON(queue, {filePath, allowedRoot, ...options} = {}) {

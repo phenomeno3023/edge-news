@@ -7,3 +7,14 @@
 .back-button,.source-link,.review-row .source-link{min-height:40px;display:inline-flex;align-items:center}
 .source-link{overflow-wrap:anywhere;word-break:break-word}
 .review-row-main{min-height:40px}
+
+.integration-timeline{padding:13px;border:1px solid var(--line);border-radius:12px;background:#101a28}
+.timeline-event{min-width:0;padding:12px;border:1px solid #26364c;border-radius:10px;background:#0d1520}
+.timeline-event h4{margin:8px 0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.timeline-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:9px 0}
+.timeline-time{min-width:0;padding:7px;border:1px solid #26364c;border-radius:7px}
+.timeline-time dt{font-size:9px;color:var(--muted)}
+.timeline-time dd{margin:2px 0 0;font-size:10px;overflow-wrap:anywhere;word-break:break-word}
+.export-actions{display:flex;gap:8px;flex-wrap:wrap}
+.export-actions button{min-height:44px}
+@media(max-width:420px){.export-actions{display:grid;grid-template-columns:1fr;width:100%}.timeline-times{grid-template-columns:1fr}}

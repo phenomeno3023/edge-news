@@ -17,7 +17,8 @@ test('종목 카드와 대기열 컨트롤은 명확한 이름을 가진 네이�
   const queue = renderReviewApplication(snapshot, {screen: 'queue', now: new Date(Date.parse(snapshot.generatedAt) + 1000)});
   assert.match(queue, /aria-label="검토 대기열 필터"/);
   assert.match(queue, /<label class="filter-field">종목코드<input/);
-  assert.match(queue, /<button class="primary-button" type="button" data-export-json>/);
+  assert.match(queue, /<button class="primary-button" type="button" data-export="json">/);
+  assert.match(queue, /<button class="quiet-button" type="button" data-export="csv">/);
   assert.match(queue, /<button class="review-row-main" type="button" data-review-id=/);
 });
 

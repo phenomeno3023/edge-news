@@ -1,6 +1,6 @@
-import {normalizeEventTime} from '../../src/nxt/event-timeline.js';
+import {buildEventTimeline, normalizeEventTime} from '../../src/nxt/event-timeline.js';
 import {buildMockSnapshot} from './mock-data.js';
-import {buildReviewQueueExport} from '../../src/nxt/review-export-contract.js';
+import {buildReviewQueueExport, serializeReviewQueueCSV} from '../../src/nxt/review-export-contract.js';
 import {createNxtUiState, sessionForNavigationKey, transitionNxtUiState} from './ui-state.js';
 
 export function escapeHtml(value = '') {
@@ -229,6 +229,66 @@ function renderIntegrationEvent(record, kind = false) {
   </article>`;
 }
 
+const TIMELINE_RELATION_LABELS = Object.freeze({
+  before_quote: '시세 관측 전', before_quote_date: '시세 날짜 전', after_quote: '시세 관측 후',
+  after_quote_date: '시세 날짜 후', at_quote_time: '시세와 같은 시각',
+  same_date_time_precision_unknown: '같은 날짜 · 시각 정밀도 불명',
+  quote_time_unavailable: '시세 관측 시각 미확인', unknown_time: '발표 시각 미확인'
+});
+
+function eventIdentity(record, kind, index) {
+  return String(record.eventId || record.reviewId || record.id || record.recordId || record.sourceRecordId
+    || `${kind ? 'disclosure' : 'news'}:${record.ticker || record.symbol || ''}:${record.title || ''}:${index}`);
+}
+
+/** Shared deterministic event preparation for the detail UI and its tests. */
+export function buildIntegrationTimeline(item) {
+  const quoteTimestamp = item?.quote?.timestamp || null;
+  const groups = [
+    ['news', item?.relatedNews || []],
+    ['kind', item?.kindDisclosures || []],
+    ['dart', item?.dartDisclosures || []]
+  ];
+  const events = groups.flatMap(([sourceKind, records]) => records.map((record, index) => {
+    const provenance = record?.provenance || record || {};
+    return {
+      ...record,
+      eventId: eventIdentity(record || {}, sourceKind !== 'news', index),
+      eventType: sourceKind,
+      sourceKind,
+      publishedAt: record?.published_at || record?.publishedAt || null,
+      firstSeenAt: record?.firstSeenAt || record?.first_seen_at || provenance.firstSeenAt || null,
+      collectedAt: record?.collectedAt || record?.collected_at || record?.ingestedAt || null,
+      observedAt: provenance.observedAt || record?.observedAt || null
+    };
+  }));
+  return buildEventTimeline(events, {quoteTimestamp});
+}
+
+function timelineTime(label, value) {
+  const formatted = formatEventTime(value);
+  return `<div class="timeline-time"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(formatted.label)} · ${escapeHtml(formatted.accuracy)}</dd></div>`;
+}
+
+function renderIntegrationTimeline(item) {
+  const timeline = buildIntegrationTimeline(item);
+  if (!timeline.events.length) return '<section class="detail-section integration-timeline"><div class="section-heading"><h3>뉴스·공시 시간순</h3><span>0건</span></div><p class="empty-inline">시간순으로 표시할 후보가 없습니다.</p></section>';
+  const rows = timeline.events.map(event => {
+    const kind = event.sourceKind !== 'news';
+    const record = event;
+    const url = record.url || record.sourceUrl;
+    const relation = TIMELINE_RELATION_LABELS[event.relationToQuote] || '시세와 시간 비교 불가';
+    return `<article class="timeline-event" data-event-id="${escapeHtml(event.eventId)}">
+      <div class="event-meta"><span>${escapeHtml(kind ? (record.sourceProvider || record.provider || record.sourceName || record.source || event.sourceKind.toUpperCase()) : (record.source || record.sourceName || record.provider || '출처 미확인'))} · ${kind ? '공시' : '뉴스'}</span><span>${escapeHtml(relation)}</span></div>
+      <h4>${escapeHtml(record.title || record.legacyFields?.title || '제목 미확인')}</h4>
+      <dl class="timeline-times">${timelineTime('원문 발표', event.publishedAt)}${timelineTime('최초 확인', event.firstSeenAt)}${timelineTime('원천 관측', event.observedAt)}${timelineTime('수집', event.collectedAt)}${timelineTime('시세 관측', item?.quote?.timestamp)}</dl>
+      <p class="verification-note">시각 순서는 참고 정보이며 상승 원인을 증명하지 않습니다. 날짜만 확인된 항목은 시·분 단위 순서를 확정하지 않습니다.</p>
+      ${linkMarkup(url)}
+    </article>`;
+  }).join('');
+  return `<section class="detail-section integration-timeline"><div class="section-heading"><h3>뉴스·공시 시간순</h3><span>${timeline.events.length}건 · 최초 확인 ${timeline.firstEventStatus === 'no_comparable_event_time' ? '미확인' : '수집 자료 기준'}</span></div><div class="event-list">${rows}</div><p class="verification-note">${escapeHtml(timeline.caveat)}</p></section>`;
+}
+
 function renderIntegrationDetail(item) {
   const quote = item.quote || {};
   const section = (label, records, kind = false) => `<section class="detail-section"><div class="section-heading"><h3>${escapeHtml(label)}</h3><span>${records.length}건</span></div>${records.length ? `<div class="event-list">${records.map(record => renderIntegrationEvent(record, kind)).join('')}</div>` : '<p class="empty-inline">연결된 후보가 없습니다.</p>'}</section>`;
@@ -239,6 +299,7 @@ function renderIntegrationDetail(item) {
     <section class="detail-hero"><div class="detail-rank">${number(item.rank)}<small>위</small></div><div><p class="ticker">${escapeHtml(item.ticker)} · ${escapeHtml(item.session)}</p><h2>${escapeHtml(item.name)}</h2><span class="mock-pill">MOCK 가상 시세</span></div><strong class="detail-change">${escapeHtml(rate(quote.changeRate))}</strong></section>
     <section class="metrics-grid">${metric('Mock 현재가', money(quote.price))}${metric('기준가', money(quote.basePrice))}${metric('거래량', number(quote.volume))}${metric('거래대금', money(quote.tradingValue))}${metric('시세 기준 시각', formatEventTime(quote.timestamp).label)}${metric('시세 출처', quote.source)}</section>
     <div class="candidate-note"><strong>뉴스·공시 연결은 검증 전 후보를 포함합니다.</strong><span>확정 연결 ${item.reviewQueueSummary?.confirmedCount || 0}건 · 검토 필요 ${item.reviewQueueSummary?.reviewNeededCount || 0}건. 시간 관계만으로 상승 원인을 단정하지 않습니다.</span></div>
+    ${renderIntegrationTimeline(item)}
     ${section('관련 뉴스 후보', item.relatedNews || [])}
     ${section('KIND 공시 후보 · UNVERIFIED', (item.kindDisclosures || []).map(record => ({...record, sourceType: 'kind_rss', provenance: record.provenance || {schemaVerification: 'UNVERIFIED', payloadAuthenticity: 'UNVERIFIED', reviewStatus: 'needs_review', provenanceStatus: 'unverified'}})), true)}
     ${section('DART 공시 후보', item.dartDisclosures || [], true)}
@@ -279,13 +340,13 @@ function renderQueueScreen(snapshot, state, unassigned = false) {
   };
   const pagination = `<div class="pagination"><button type="button" data-page="prev"${page.offset <= 0 ? ' disabled' : ''}>이전</button><span>${filtered.length ? Math.floor(page.offset / page.limit) + 1 : 0} / ${Math.max(1, Math.ceil(page.total / page.limit))} 페이지 · 필터 결과 ${filtered.length}건${unassigned ? ` · 전체 대기열 ${totals}건` : ''}</span><button type="button" data-page="next"${page.hasMore ? '' : ' disabled'}>다음</button></div>`;
   return `<section class="review-screen">
-    <div class="screen-heading"><div><p class="eyebrow">READ-ONLY REVIEW</p><h2>${unassigned ? '미배정 후보' : '검토 대기열'}</h2><p>현재 조건의 후보를 확인합니다. 화면에서 승인하거나 원본 근거를 변경할 수 없습니다.</p></div><button class="primary-button" type="button" data-export-json>필터 결과 JSON 보기·저장</button></div>
+    <div class="screen-heading"><div><p class="eyebrow">READ-ONLY REVIEW</p><h2>${unassigned ? '미배정 후보' : '검토 대기열'}</h2><p>현재 조건의 후보를 확인합니다. 화면에서 승인하거나 원본 근거를 변경할 수 없습니다.</p></div><div class="export-actions"><button class="primary-button" type="button" data-export="json">필터 결과 JSON 저장</button><button class="quiet-button" type="button" data-export="csv">필터 결과 CSV 저장</button></div></div>
     ${unassigned ? '<p class="candidate-note"><strong>TOP10 종목에 연결되지 않은 항목입니다.</strong><span>특정 종목으로 자동 배정하지 않습니다.</span></p>' : ''}
     ${reviewControls(state.filters, state.offset)}
     <p class="queue-count">전체 ${unassigned ? snapshot.unassignedReviewItems?.length || 0 : totals}건 · 현재 조건 ${filtered.length}건 · 확정 연결 ${snapshot.validation?.confirmedCount ?? 0}건</p>
     ${filtered.length ? `<div class="review-layout"><div><div class="review-list">${page.items.map(reviewRow).join('')}</div>${pagination}</div>${renderReviewDetail(selected)}</div>` : '<section class="state-card"><h3>조건에 맞는 항목이 없습니다</h3><p>필터를 바꾸거나 다른 화면을 확인해 주세요.</p></section>'}
-    ${filtered.length > 100 ? '<p class="verification-note">JSON 내보내기는 안전을 위해 최대 100건으로 제한됩니다.</p>' : ''}
-    ${state.exportError ? '<p class="error-note" role="alert">JSON 내보내기를 완료하지 못했습니다. 필터를 다시 확인해 주세요.</p>' : ''}
+    ${filtered.length > 100 ? '<p class="verification-note">JSON·CSV 내보내기는 안전을 위해 최대 100건으로 제한됩니다.</p>' : ''}
+    ${state.exportError ? '<p class="error-note" role="alert">파일 내보내기를 완료하지 못했습니다. 필터를 다시 확인해 주세요.</p>' : ''}
   </section>`;
 }
 
@@ -351,6 +412,15 @@ export function makeReviewExport(snapshot, filters = {}, {scope = 'queue'} = {})
   }
   const queue = {items: limited, page: {limit: 100, offset: 0, total: filtered.length, returned: limited.length, hasMore: filtered.length > limited.length}, aggregates: {statusCounts, reasonCounts, sourceCounts}};
   return buildReviewQueueExport(queue, {dataMode: 'synthetic_fixture', generatedAt: new Date().toISOString(), filters});
+}
+
+export function makeReviewCSV(snapshot, filters = {}, {scope = 'queue'} = {}) {
+  const payload = makeReviewExport(snapshot, filters, {scope});
+  return serializeReviewQueueCSV({items: payload.items}, {
+    dataMode: payload.dataMode,
+    generatedAt: payload.generatedAt,
+    filters: {...payload.filters, scope}
+  });
 }
 
 function staleNotice(snapshot, now) {
@@ -458,14 +528,16 @@ if (typeof document !== 'undefined') {
       Object.assign(state, transitionNxtUiState(state, action, options));
       draw();
     };
-    const exportJson = () => {
+    const exportFile = format => {
       try {
         const payload = makeReviewExport(snapshot, state.filters, {scope: state.screen});
         payload.filters = {...payload.filters, scope: state.screen};
-        const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json;charset=utf-8'});
+        const isCsv = format === 'csv';
+        const content = isCsv ? serializeReviewQueueCSV({items: payload.items}, {dataMode: payload.dataMode, generatedAt: payload.generatedAt, filters: payload.filters}) : JSON.stringify(payload, null, 2);
+        const blob = new Blob([content], {type: isCsv ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8'});
         const href = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = href; link.download = `nxt-review-${new Date().toISOString().slice(0,10)}.json`;
+        link.href = href; link.download = `nxt-review-${new Date().toISOString().slice(0,10)}.${isCsv ? 'csv' : 'json'}`;
         document.body.append(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(href), 1000);
         apply({type: 'export-ok'});
       } catch { apply({type: 'export-error'}); }
@@ -485,8 +557,8 @@ if (typeof document !== 'undefined') {
       if (sessionButton) { apply({type: 'select-session', session: sessionButton.dataset.session}); return; }
       const screenButton = target.closest('[data-screen]');
       if (screenButton) { apply({type: 'select-screen', screen: screenButton.dataset.screen}); return; }
-      const exportButton = target.closest('[data-export-json]');
-      if (exportButton) { exportJson(); return; }
+      const exportButton = target.closest('[data-export]');
+      if (exportButton) { exportFile(exportButton.dataset.export); return; }
       if (target.closest('[data-retry]')) { loadSnapshot(); return; }
       const clearButton = target.closest('[data-clear-filters]');
       if (clearButton) { apply({type: 'clear-filters'}); return; }
