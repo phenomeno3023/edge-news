@@ -1,5 +1,7 @@
 # STEP 66 — KIS·NXT 공급자 확인 문의 초안
 
+> STEP 67에서 공식 문의 경로를 재확인하고 질문을 분리했습니다. 제출용 최신 문안은 `nxt-kis-technical-inquiry.md`, `nxt-nextrade-data-inquiry.md`, `nxt-marketdata-rights-inquiry.md`를 사용하고 연락처·계약 경로는 `nxt-provider-contact-routes.md`를 참조하세요. 이 STEP 66 초안은 조사 이력 보존용입니다.
+
 작성일: 2026-11-04 (UTC)  
 상태: 초안만 작성. 발송하지 않음.
 
