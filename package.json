@@ -8,6 +8,8 @@
     "collect": "node src/collect.js",
     "export": "node src/export.js",
     "report:step3": "node scripts/build-step3-report.js",
+    "test:nxt:browser:check": "node scripts/check-nxt-browser-env.js",
+    "test:nxt:browser": "node scripts/run-nxt-browser-e2e.js",
     "test": "node --test"
   },
   "engines": {
@@ -18,5 +20,8 @@
     "express": "^4.21.2",
     "iconv-lite": "^0.7.3",
     "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
   }
 }

@@ -5,11 +5,19 @@ export default defineConfig({
   timeout: 30_000,
   expect: {timeout: 5_000},
   reporter: 'list',
-  use: {baseURL: 'http://127.0.0.1:4173', browserName: 'chromium', headless: true},
+  outputDir: '../../test-results/nxt-browser/artifacts',
+  preserveOutput: 'always',
+  use: {
+    baseURL: 'http://127.0.0.1:4173',
+    browserName: 'chromium',
+    headless: true,
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure'
+  },
   webServer: {
-    command: 'node scripts/build-nxt-preview-data.js && python3 -m http.server 4173 --bind 127.0.0.1',
+    command: 'node scripts/nxt-preview-server.js',
     url: 'http://127.0.0.1:4173/preview/nxt/',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 30_000
   }
 });

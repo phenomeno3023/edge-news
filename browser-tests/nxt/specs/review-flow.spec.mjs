@@ -4,9 +4,14 @@ import fs from 'node:fs';
 const snapshot = JSON.parse(fs.readFileSync(new URL('../../../preview/nxt/review-snapshot.json', import.meta.url), 'utf8'));
 const sizes = [360, 390, 430, 768, 1280];
 
-test('세션·종목 상세·검토 상세·목록 복귀를 실제 DOM 조작으로 확인한다', async ({page}) => {
+test.beforeEach(async ({browser}, testInfo) => {
+  testInfo.annotations.push({type: 'browser', description: `${browser.browserType().name()} ${browser.version()}`});
+});
+
+test('PRE/AFTER·종목 상세·타임라인·검토 상세·목록 복귀를 실제 DOM 조작으로 확인한다', async ({page}) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto('/preview/nxt/');
   await expect(page.getByText('프리마켓 상승률 TOP10')).toBeVisible();
   await page.locator('.quote-card').first().click();
@@ -32,7 +37,7 @@ test('세션·종목 상세·검토 상세·목록 복귀를 실제 DOM 조작�
   expect(errors).toEqual([]);
 });
 
-test('검토 대기열 필터·페이지네이션·JSON 다운로드를 조작한다', async ({page}) => {
+test('검토 대기열 필터·페이지네이션·JSON/CSV 다운로드를 검증한다', async ({page}) => {
   const many = structuredClone(snapshot);
   const base = many.reviewQueue.items[0];
   many.reviewQueue.items = Array.from({length: 45}, (_, index) => ({...structuredClone(base), reviewId: `browser-${index}`, recordId: `browser-${index}`, title: `브라우저 검토 ${index}`, publishedAt: `2026-11-${String(1 + index % 3).padStart(2, '0')}T10:00:00Z`}));
@@ -54,6 +59,9 @@ test('검토 대기열 필터·페이지네이션·JSON 다운로드를 조작�
   expect(data.dataMode).toBe('synthetic_fixture');
   expect(data.filters.sourceType).toBe(base.sourceType);
   expect(data.returnedItems).toBeLessThanOrEqual(100);
+  expect(data.items[0]).toHaveProperty('matchEvidence');
+  expect(data.items[0]).toHaveProperty('confidence');
+  expect(data.items[0]).toHaveProperty('reviewStatus');
   const csvWait = page.waitForEvent('download');
   await page.getByRole('button', {name: '필터 결과 CSV 저장'}).click();
   const csvDownload = await csvWait;
@@ -61,23 +69,36 @@ test('검토 대기열 필터·페이지네이션·JSON 다운로드를 조작�
   expect(csvDownload.suggestedFilename()).toMatch(/\.csv$/);
   expect(csv.split('\r\n')[0]).toContain('"reviewId"');
   expect(csv.split('\r\n').length).toBeLessThanOrEqual(102);
+  expect(await page.locator('.review-row').count()).toBeGreaterThan(0);
 });
 
 for (const width of sizes) {
-  test(`화면 폭 ${width}px에서 페이지 가로 넘침이 없다`, async ({page}) => {
+  test(`화면 폭 ${width}px에서 TOP10·상세·검토 대기열을 검사한다`, async ({page}, testInfo) => {
     await page.setViewportSize({width, height: 900});
     await page.goto('/preview/nxt/');
     await expect(page.locator('.quote-card')).toHaveCount(10);
-    const topWidths = await page.evaluate(() => ({scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth}));
-    expect(topWidths.scroll).toBeLessThanOrEqual(topWidths.client + 1);
+    const measureLayout = () => page.evaluate(() => {
+      const clippedSelectors = ['.quote-card', '.stock-name strong', '.ticker', '.timeline-event h4', '.filter-field input', '.filter-field select', '.primary-button', '.quiet-button'];
+      const clipped = clippedSelectors.flatMap(selector => [...document.querySelectorAll(selector)].filter(element => element.scrollWidth > element.clientWidth + 1).map(element => `${selector}:${element.textContent?.trim().slice(0, 50) || ''}`));
+      return {scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth, pageScrollable: document.documentElement.scrollHeight >= document.documentElement.clientHeight, clipped};
+    });
+    let dimensions = await measureLayout();
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+    expect(dimensions.clipped).toEqual([]);
+    await page.screenshot({path: testInfo.outputPath(`viewport-${width}-top10.png`), fullPage: true});
     await page.locator('.quote-card').first().click();
     await expect(page.getByRole('heading', {name: '뉴스·공시 시간순'})).toBeVisible();
-    const detailWidths = await page.evaluate(() => ({scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth}));
-    expect(detailWidths.scroll).toBeLessThanOrEqual(detailWidths.client + 1);
+    dimensions = await measureLayout();
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+    expect(dimensions.clipped).toEqual([]);
+    await page.screenshot({path: testInfo.outputPath(`viewport-${width}-detail.png`), fullPage: true});
     await page.locator('[data-back]').click();
     await page.getByRole('button', {name: /검토 대기열/}).click();
-    const queueWidths = await page.evaluate(() => ({scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth}));
-    expect(queueWidths.scroll).toBeLessThanOrEqual(queueWidths.client + 1);
+    await expect(page.getByRole('heading', {name: '검토 대기열'})).toBeVisible();
+    dimensions = await measureLayout();
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1);
+    expect(dimensions.clipped).toEqual([]);
+    await page.screenshot({path: testInfo.outputPath(`viewport-${width}-queue.png`), fullPage: true});
   });
 }
 
