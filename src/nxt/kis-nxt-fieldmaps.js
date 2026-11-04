@@ -5,7 +5,20 @@
  */
 export const KIS_NXT_API_ID = 'H0NXCNT0';
 export const KIS_NXT_FIELD_SOURCE = 'https://github.com/koreainvestment/open-trading-api/blob/main/examples_user/domestic_stock/domestic_stock_functions_ws.py';
-export const KIS_NXT_FIELD_VERSION = 'public-example-review-2026-11-03';
+export const KIS_NXT_FIELD_VERSION = 'public-example-review-2026-11-04';
+
+/** Ordered output-column list in KIS's public H0NXCNT0 example; not a payload sample. */
+export const KIS_NXT_H0NXCNT0_OUTPUT_COLUMNS = Object.freeze([
+  'MKSC_SHRN_ISCD', 'STCK_CNTG_HOUR', 'STCK_PRPR', 'PRDY_VRSS_SIGN', 'PRDY_VRSS', 'PRDY_CTRT',
+  'WGHN_AVRG_STCK_PRC', 'STCK_OPRC', 'STCK_HGPR', 'STCK_LWPR', 'ASKP1', 'BIDP1', 'CNTG_VOL',
+  'ACML_VOL', 'ACML_TR_PBMN', 'SELN_CNTG_CSNU', 'SHNU_CNTG_CSNU', 'NTBY_CNTG_CSNU', 'CTTR',
+  'SELN_CNTG_SMTN', 'SHNU_CNTG_SMTN', 'CNTG_CLS_CODE', 'SHNU_RATE', 'PRDY_VOL_VRSS_ACML_VOL_RATE',
+  'OPRC_HOUR', 'OPRC_VRSS_PRPR_SIGN', 'OPRC_VRSS_PRPR', 'HGPR_HOUR', 'HGPR_VRSS_PRPR_SIGN',
+  'HGPR_VRSS_PRPR', 'LWPR_HOUR', 'LWPR_VRSS_PRPR_SIGN', 'LWPR_VRSS_PRPR', 'BSOP_DATE',
+  'NEW_MKOP_CLS_CODE', 'TRHT_YN', 'ASKP_RSQN1', 'BIDP_RSQN1', 'TOTAL_ASKP_RSQN',
+  'TOTAL_BIDP_RSQN', 'VOL_TNRT', 'PRDY_SMNS_HOUR_ACML_VOL', 'PRDY_SMNS_HOUR_ACML_VOL_RATE',
+  'HOUR_CLS_CODE', 'MRKT_TRTM_CLS_CODE', 'VI_STND_PRC', 'MARKET_CLS_CODE'
+]);
 
 const field = (fieldName, meaning, semantic, extra = {}) => Object.freeze({
   fieldName, meaning, semantic, apiId: KIS_NXT_API_ID,

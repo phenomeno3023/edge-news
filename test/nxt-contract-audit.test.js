@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ProviderEvidenceRegistry} from '../src/nxt/provider-evidence-registry.js';
-import {KIS_NXT_H0NXCNT0_FIELD_MAP, KIS_NXT_API_ID, KIS_NXT_FIELD_VERSION, KIS_NXT_UNMAPPED_CONTRACTS} from '../src/nxt/kis-nxt-fieldmaps.js';
+import {KIS_NXT_H0NXCNT0_FIELD_MAP, KIS_NXT_H0NXCNT0_OUTPUT_COLUMNS, KIS_NXT_API_ID, KIS_NXT_FIELD_VERSION, KIS_NXT_UNMAPPED_CONTRACTS} from '../src/nxt/kis-nxt-fieldmaps.js';
 import {normalizeKisNxtDocumentedFields} from '../src/nxt/kis-quote-adapter-contract.js';
 
 test('NXT KIS catalog scopes documented field identities to H0NXCNT0 and leaves missing concepts unverified', () => {
@@ -12,6 +12,17 @@ test('NXT KIS catalog scopes documented field identities to H0NXCNT0 and leaves 
   assert.equal(KIS_NXT_H0NXCNT0_FIELD_MAP.tradingValue.unit, 'UNVERIFIED');
   assert.equal(KIS_NXT_UNMAPPED_CONTRACTS.basePrice.status, 'UNVERIFIED');
   assert.equal(KIS_NXT_UNMAPPED_CONTRACTS.ranking.status, 'UNVERIFIED');
+});
+
+test('H0NXCNT0 public sample column order is recorded without promoting it to a payload contract', () => {
+  assert.equal(KIS_NXT_H0NXCNT0_OUTPUT_COLUMNS.length, 47);
+  assert.deepEqual(KIS_NXT_H0NXCNT0_OUTPUT_COLUMNS.slice(0, 6), [
+    'MKSC_SHRN_ISCD', 'STCK_CNTG_HOUR', 'STCK_PRPR', 'PRDY_VRSS_SIGN', 'PRDY_VRSS', 'PRDY_CTRT'
+  ]);
+  assert.equal(KIS_NXT_H0NXCNT0_OUTPUT_COLUMNS.at(-1), 'MARKET_CLS_CODE');
+  assert.equal(new Set(KIS_NXT_H0NXCNT0_OUTPUT_COLUMNS).size, KIS_NXT_H0NXCNT0_OUTPUT_COLUMNS.length);
+  assert.equal(KIS_NXT_H0NXCNT0_FIELD_MAP.tradingValue.unit, 'UNVERIFIED');
+  assert.equal(KIS_NXT_UNMAPPED_CONTRACTS.basePrice.status, 'UNVERIFIED');
 });
 
 test('documented field observations preserve raw values and never construct or promote a quote', () => {
