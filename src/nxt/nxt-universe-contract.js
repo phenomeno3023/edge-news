@@ -3,6 +3,8 @@ const dateOnly = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.tes
 const iso = value => typeof value === 'string' && Number.isFinite(Date.parse(value))
   && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value);
 const digest = value => typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
+const text = value => typeof value === 'string' && value.trim().length > 0;
+const https = value => { try { return new URL(value).protocol === 'https:'; } catch { return false; } };
 import {evaluateNxtEligibility} from './nxt-eligibility-gate.js';
 
 export function validateNxtUniverse(input, {now = new Date()} = {}) {
@@ -66,4 +68,35 @@ export function assessNxtUniverseSource({sourceKind, entries = [], declaredCompl
       ...(duplicates.length ? ['duplicate_tickers'] : []), ...(invalidTickers.length ? ['invalid_tickers'] : []),
       ...(missingSessionFlags ? ['session_eligibility_flags_missing'] : []), ...(!rows.length ? ['universe_empty'] : [])
     ]};
+}
+
+/** Validate the handoff contract for a future official universe file; this does not authenticate it. */
+export function validateNxtUniverseFileInput(input) {
+  const errors = [];
+  const value = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  if (!text(value.sourceUrl) || !https(value.sourceUrl)) errors.push('source_url_invalid');
+  if (!iso(value.retrievedAt)) errors.push('retrieved_at_invalid');
+  if (!dateOnly(value.effectiveDate)) errors.push('effective_date_invalid');
+  if (!digest(value.fileDigest)) errors.push('file_digest_invalid');
+  if (!Number.isInteger(value.rowCount) || value.rowCount < 1) errors.push('row_count_invalid');
+  if (!['complete', 'partial', 'unknown'].includes(value.completeness)) errors.push('completeness_invalid');
+  if (!['DOCUMENTED', 'LIVE_VERIFIED', 'UNVERIFIED'].includes(value.validationStatus)) errors.push('validation_status_invalid');
+  if (value.payloadOrigin != null && !['live_response', 'documented_example', 'synthetic_fixture', 'unknown'].includes(value.payloadOrigin)) errors.push('payload_origin_invalid');
+  if (value.payloadAuthenticity != null && !['AUTHENTICATED', 'DOCUMENTED', 'UNVERIFIED'].includes(value.payloadAuthenticity)) errors.push('payload_authenticity_invalid');
+  if (!Array.isArray(value.entries)) errors.push('entries_invalid');
+  else {
+    if (value.entries.length !== value.rowCount) errors.push('row_count_mismatch');
+    for (const [index, entry] of value.entries.entries()) {
+      if (!/^\d{6}$/.test(entry?.ticker ?? '')) errors.push(`entry_${index}_ticker_invalid`);
+      if (typeof entry?.sessionEligibility?.PRE !== 'boolean' || typeof entry?.sessionEligibility?.AFTER !== 'boolean') errors.push(`entry_${index}_session_eligibility_invalid`);
+    }
+    const tickers = value.entries.map(entry => entry?.ticker).filter(Boolean);
+    if (new Set(tickers).size !== tickers.length) errors.push('duplicate_tickers');
+  }
+  const accepted = errors.length === 0 ? structuredClone({...value,
+    completeness: value.completeness === 'complete' && value.validationStatus === 'LIVE_VERIFIED' ? 'complete' : value.completeness,
+    validationStatus: value.validationStatus === 'LIVE_VERIFIED' ? 'LIVE_VERIFIED' : value.validationStatus}) : null;
+  const canEstablishUniverse = Boolean(accepted && accepted.completeness === 'complete' && accepted.validationStatus === 'LIVE_VERIFIED'
+    && accepted.payloadOrigin === 'live_response' && accepted.payloadAuthenticity === 'AUTHENTICATED');
+  return {valid: errors.length === 0, canEstablishUniverse, status: canEstablishUniverse ? 'LIVE_VERIFIED' : errors.length ? 'INVALID' : value.completeness === 'partial' ? 'PARTIAL' : 'UNVERIFIED', errors, input: accepted};
 }
