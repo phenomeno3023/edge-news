@@ -24,9 +24,10 @@ test('complete file declaration without authenticated capture remains unverified
   const result=validateNxtUniverseFileInput({...base,completeness:'complete',validationStatus:'LIVE_VERIFIED'});
   assert.equal(result.valid,true); assert.equal(result.status,'UNVERIFIED'); assert.equal(result.canEstablishUniverse,false);
 });
-test('even verified completeness declaration needs live authenticated payload evidence', () => {
+test('contract validator never authenticates a file from caller status claims', () => {
   const result=validateNxtUniverseFileInput({...base,completeness:'complete',validationStatus:'LIVE_VERIFIED',payloadOrigin:'live_response',payloadAuthenticity:'AUTHENTICATED'});
-  assert.equal(result.status,'LIVE_VERIFIED'); assert.equal(result.canEstablishUniverse,true);
+  assert.equal(result.status,'UNVERIFIED'); assert.equal(result.canEstablishUniverse,false);
+  assert.ok(result.verificationReasons.includes('file_bytes_and_authenticity_not_verified_by_contract_validator'));
 });
 test('input records are cloned and remain unchanged', () => {
   const input=structuredClone(base); const before=structuredClone(input); validateNxtUniverseFileInput(input); assert.deepEqual(input,before);

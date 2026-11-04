@@ -93,10 +93,10 @@ export function validateNxtUniverseFileInput(input) {
     const tickers = value.entries.map(entry => entry?.ticker).filter(Boolean);
     if (new Set(tickers).size !== tickers.length) errors.push('duplicate_tickers');
   }
-  const accepted = errors.length === 0 ? structuredClone({...value,
-    completeness: value.completeness === 'complete' && value.validationStatus === 'LIVE_VERIFIED' ? 'complete' : value.completeness,
-    validationStatus: value.validationStatus === 'LIVE_VERIFIED' ? 'LIVE_VERIFIED' : value.validationStatus}) : null;
-  const canEstablishUniverse = Boolean(accepted && accepted.completeness === 'complete' && accepted.validationStatus === 'LIVE_VERIFIED'
-    && accepted.payloadOrigin === 'live_response' && accepted.payloadAuthenticity === 'AUTHENTICATED');
-  return {valid: errors.length === 0, canEstablishUniverse, status: canEstablishUniverse ? 'LIVE_VERIFIED' : errors.length ? 'INVALID' : value.completeness === 'partial' ? 'PARTIAL' : 'UNVERIFIED', errors, input: accepted};
+  const accepted = errors.length === 0 ? structuredClone(value) : null;
+  // This schema validator sees claims and metadata only. It cannot authenticate file bytes or provenance.
+  const verificationReasons = accepted ? ['file_bytes_and_authenticity_not_verified_by_contract_validator'] : [];
+  return {valid: errors.length === 0, canEstablishUniverse: false,
+    status: errors.length ? 'INVALID' : value.completeness === 'partial' ? 'PARTIAL' : 'UNVERIFIED',
+    errors, verificationReasons, input: accepted};
 }

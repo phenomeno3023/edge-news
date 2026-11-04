@@ -59,7 +59,7 @@ STEP 64에서 확인한 `/uapi/domestic-stock/v1/ranking/fluctuation` 경로 및
 
 ## NXT 유니버스 파일 입력 준비
 
-`validateNxtUniverseFileInput()`은 원본 URL, 조회 시각, 기준일, 파일 digest, 행 수, 완전성, 종목코드와 PRE/AFTER 자격 플래그를 검증한다. 샘플·부분 목록 또는 문서 예제는 완전 유니버스로 승인하지 않는다. `LIVE_VERIFIED` 선언만으로는 부족하며 원본이 live response이고 진위가 독립 인증됐다는 조건까지 필요하다. 이번 작업에서는 실제 목록 파일을 확보하지 않았다.
+`validateNxtUniverseFileInput()`은 원본 URL, 조회 시각, 기준일, 파일 digest, 행 수, 완전성, 종목코드와 PRE/AFTER 자격 플래그를 검증한다. 이는 입력 구조 검사이며 파일 바이트나 출처의 진위를 인증하지 않는다. 호출자가 `LIVE_VERIFIED`라고 전달해도 이 함수 자체는 목록을 인증하지 않고 `UNVERIFIED`로 남긴다. 실제 인증된 전체 목록의 별도 검증 자료가 있어야 후속 단계에서 완전 유니버스 판정을 검토할 수 있다. 이번 작업에서는 실제 목록 파일을 확보하지 않았다.
 
 ## LIVE 게이트
 
